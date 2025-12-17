@@ -3,9 +3,18 @@
 # Скрипт для настройки сервера
 # Использование: ./setup_server.sh
 
-SERVER_IP="89.104.74.123"
+# ВАЖНО: Установите IP адрес сервера через переменную окружения
+# export SERVER_IP=your-server-ip
+# или отредактируйте эту строку:
+SERVER_IP="${SERVER_IP:-YOUR_SERVER_IP_HERE}"
 SERVER_USER="${1:-root}"
 SERVER_PATH="/var/www/dnevnik-uspekha"
+
+if [ "$SERVER_IP" = "YOUR_SERVER_IP_HERE" ]; then
+    echo "❌ Ошибка: Установите SERVER_IP перед запуском"
+    echo "export SERVER_IP=your-server-ip"
+    exit 1
+fi
 
 echo "🔧 Настройка сервера $SERVER_IP..."
 

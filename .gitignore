@@ -29,5 +29,18 @@ node_modules/
 *.bak
 *.backup
 
+# SSH ключи - НИКОГДА не коммитьте!
 SSH_PRIVATE_KEY.txt
 SSH_PUBLIC_KEY.txt
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+*_private_key*
+*_private*
+
+# Конфигурация с чувствительными данными
+server_config.txt
+.env.production
+secrets.txt
+

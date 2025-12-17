@@ -19,11 +19,19 @@ command -v git >/dev/null 2>&1 || { echo -e "${RED}❌ Git не установл
 command -v curl >/dev/null 2>&1 || { echo -e "${RED}❌ curl не установлен${NC}"; exit 1; }
 echo -e "${GREEN}✅ Все зависимости установлены${NC}\n"
 
-# Параметры
-SERVER_IP="89.104.74.123"
-SERVER_USER="root"
-SERVER_PATH="/var/www/dnevnik-uspekha"
+# Параметры (настройте перед запуском или используйте переменные окружения)
+SERVER_IP="${SERVER_IP:-}"
+SERVER_USER="${SERVER_USER:-root}"
+SERVER_PATH="${SERVER_PATH:-/var/www/dnevnik-uspekha}"
 REPO="boofmebel/dnevnik-uspekha"
+
+# Проверка обязательных параметров
+if [ -z "$SERVER_IP" ]; then
+    echo -e "${RED}❌ Ошибка: SERVER_IP не установлен${NC}"
+    echo -e "${YELLOW}Установите переменную окружения: export SERVER_IP=your-server-ip${NC}"
+    echo -e "${YELLOW}Или отредактируйте скрипт и укажите IP${NC}"
+    exit 1
+fi
 
 # Запрос GitHub токена
 echo -e "${YELLOW}🔑 Нужен GitHub Personal Access Token${NC}"
