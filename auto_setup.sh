@@ -86,18 +86,22 @@ jobs:
 WORKFLOWEOF
 )
 
-# Кодируем в base64 (одна строка без переносов для JSON)
+# Кодируем в base64 (удаляем переносы строк для JSON)
 WORKFLOW_B64=$(echo "$WORKFLOW_CONTENT" | base64 | tr -d '\n')
 
 # Создаем JSON payload с правильным экранированием
-JSON_PAYLOAD=$(cat <<JSONEOF
-{
-  "message": "Add GitHub Actions workflow",
-  "content": "$WORKFLOW_B64",
-  "branch": "main"
-}
-JSONEOF
-)
+# Используем jq если доступен, иначе создаем JSON вручную с экранированием
+if command -v jq >/dev/null 2>&1; then
+    JSON_PAYLOAD=$(jq -n \
+        --arg msg "Add GitHub Actions workflow" \
+        --arg content "$WORKFLOW_B64" \
+        --arg branch "main" \
+        '{message: $msg, content: $content, branch: $branch}')
+else
+    # Экранируем специальные символы для JSON
+    ESCAPED_B64=$(echo "$WORKFLOW_B64" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g')
+    JSON_PAYLOAD="{\"message\":\"Add GitHub Actions workflow\",\"content\":\"$ESCAPED_B64\",\"branch\":\"main\"}"
+fi
 
 # Создаем файл через API
 RESPONSE=$(curl -s -w "\n%{http_code}" -X PUT \
@@ -182,10 +186,10 @@ if [ -n "$SSH_PASS" ]; then
         echo -e "${BLUE}Подключение к серверу...${NC}"
         sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" << EOF
             set -e
-            mkdir -p "$SERVER_PATH"
-            cd "$SERVER_PATH"
+            mkdir -p "$SERVER_PATH" || { echo "❌ Ошибка: не удалось создать директорию"; exit 1; }
+            cd "$SERVER_PATH" || { echo "❌ Ошибка: не удалось перейти в директорию"; exit 1; }
             if [ ! -d .git ]; then
-                git clone "https://github.com/$REPO.git" .
+                git clone "https://github.com/$REPO.git" . || { echo "❌ Ошибка: не удалось клонировать репозиторий"; exit 1; }
             fi
             echo "✅ Сервер настроен"
 EOF
@@ -196,10 +200,10 @@ else
     if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" "echo 'Connected'" 2>/dev/null; then
         ssh "$SERVER_USER@$SERVER_IP" << EOF
             set -e
-            mkdir -p "$SERVER_PATH"
-            cd "$SERVER_PATH"
+            mkdir -p "$SERVER_PATH" || { echo "❌ Ошибка: не удалось создать директорию"; exit 1; }
+            cd "$SERVER_PATH" || { echo "❌ Ошибка: не удалось перейти в директорию"; exit 1; }
             if [ ! -d .git ]; then
-                git clone "https://github.com/$REPO.git" .
+                git clone "https://github.com/$REPO.git" . || { echo "❌ Ошибка: не удалось клонировать репозиторий"; exit 1; }
             fi
             echo "✅ Сервер настроен"
 EOF
@@ -228,7 +232,9 @@ fi
 
 if [ -n "$PUB_KEY" ]; then
     # Создаем директорию .ssh если не существует и добавляем ключ
-    SSH_CMD="mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '$PUB_KEY' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+    # Экранируем ключ для безопасной передачи через SSH
+    ESCAPED_KEY=$(echo "$PUB_KEY" | sed "s/'/'\\\\''/g")
+    SSH_CMD="mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '$ESCAPED_KEY' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
     
     if ssh -o ConnectTimeout=5 "$SERVER_USER@$SERVER_IP" "$SSH_CMD" 2>/dev/null; then
         echo -e "${GREEN}✅ SSH ключ добавлен на сервер${NC}"
