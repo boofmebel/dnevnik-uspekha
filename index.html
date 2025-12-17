@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#10b981" />
+  <title>Дневник успеха - Система ответственности</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="styles.css?v=8" />
+  <script src="utils.js"></script>
+  <script src="data.js"></script>
+  <script src="ui.js"></script>
+</head>
+<body>
+<header>
+  <div class="header-content">
+    <div class="header-left">
+      <button class="profile-avatar" onclick="openProfileModal()" title="Профиль">
+        <div class="avatar-circle" id="profile-avatar">👤</div>
+      </button>
+    </div>
+    <div class="header-center">
+      <span class="header-title">Дневник успеха</span>
+      <div class="header-name-row">
+        <span class="header-name" id="header-name"></span>
+        <div class="header-stars" onclick="openStarsExchangeModal()">
+          <span class="stars-count" id="header-stars-count">0</span>
+          <span class="stars-icon">⭐</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+      <!-- Пустое место для симметрии -->
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <!-- Чек-листы -->
+  <div class="page active" id="checklist">
+    <div class="card">
+      <div class="card-header">
+        <h2>✅ Мои дела</h2>
+        <button class="add-btn-small" onclick="openAddTaskModal('checklist')" title="Добавить">+</button>
+      </div>
+      <ul id="checklist-items" class="checklist-list">
+        <!-- Заполняется через JS -->
+      </ul>
+    </div>
+    
+    <div class="card">
+      <div class="card-header">
+        <h2>⭐ Звёзды сегодня</h2>
+      </div>
+      <div class="stars-display">
+        <div class="stars-count" id="today-stars">0</div>
+        <div class="stars-label">⭐</div>
+      </div>
+      <div id="streak-display" style="display: none; margin: 12px 0;"></div>
+      <div class="stars-info">
+        <p>15 ⭐ = 200 ₽</p>
+        <div class="progress">
+          <div class="progress-bar" id="stars-progress" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Канбан -->
+  <div class="page" id="kanban">
+    <div class="card">
+      <div class="card-header">
+        <h2>📋 Мои задания</h2>
+        <button class="add-btn-small" onclick="openAddTaskModal('kanban')" title="Добавить">+</button>
+      </div>
+      <div class="kanban" id="kanban-board">
+        <div class="kanban-column" data-column="todo">
+          <div class="column-header"><strong>Нужно</strong></div>
+          <div class="tasks-container" id="todo-tasks"></div>
+        </div>
+        <div class="kanban-column" data-column="doing">
+          <div class="column-header"><strong>Делаю</strong></div>
+          <div class="tasks-container" id="doing-tasks"></div>
+        </div>
+        <div class="kanban-column" data-column="done">
+          <div class="column-header"><strong>Готово 🎉</strong></div>
+          <div class="tasks-container" id="done-tasks"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Копилка -->
+  <div class="page" id="piggy">
+    <div class="card piggy">
+      <div class="card-header">
+        <h2>🎯 Моя цель</h2>
+      </div>
+      <div class="money-display">
+        <div class="money" id="piggy-amount">0 ₽</div>
+        <div class="money-goal" id="piggy-goal">/ 0 ₽</div>
+      </div>
+      <div class="progress">
+        <div class="progress-bar" id="piggy-progress" style="width: 0%"></div>
+      </div>
+      <div class="goal-controls">
+        <button class="money-btn minus" onclick="openPiggyModal('minus')" title="Убрать">−</button>
+        <div class="goal-text-wrapper">
+          <p class="goal-text" id="goal-text">Цель не установлена</p>
+        </div>
+        <button class="money-btn plus" onclick="openPiggyModal('plus')" title="Добавить">+</button>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2>💰 Карманные деньги</h2>
+      <div class="money-stats-compact">
+        <div class="stat-compact">
+          <span class="stat-icon">⭐</span>
+          <span class="stat-value-compact" id="total-stars">0</span>
+          <span class="stat-label-compact">Всего звёзд</span>
+        </div>
+        <div class="stat-compact">
+          <span class="stat-icon">💰</span>
+          <span class="stat-value-compact" id="total-money">0 ₽</span>
+          <span class="stat-label-compact">Заработано</span>
+        </div>
+        <div class="stat-compact">
+          <span class="stat-icon">💵</span>
+          <span class="stat-value-compact" id="wallet-amount">0 ₽</span>
+          <span class="stat-label-compact">В кошельке</span>
+        </div>
+      </div>
+      <div class="conversion-info">
+        <p><strong id="conversion-text">15 ⭐ = 200 ₽</strong></p>
+        <div class="progress">
+          <div class="progress-bar" id="money-progress" style="width: 0%"></div>
+        </div>
+        <p class="next-reward" id="next-reward">Следующая выплата через: 15 ⭐</p>
+      </div>
+      <div class="money-history-section">
+        <h3 style="font-size: 16px; margin: 16px 0 12px; color: #666;">💸 История выплат</h3>
+        <div id="money-history" class="history-list">
+          <p class="empty-state">Нет выплат</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2>🎁 Список желаний</h2>
+      <div id="wishlist-items" class="wishlist-list">
+        <p class="empty-state">Нет желаний</p>
+      </div>
+      <button class="action-button" onclick="openWishModal()">Добавить желание</button>
+    </div>
+    
+    <div class="card">
+      <h2>📊 История</h2>
+      <div id="piggy-history" class="history-list">
+        <p class="empty-state">Нет истории</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Дневник -->
+  <div class="page" id="diary">
+    <div class="card">
+      <div class="card-header">
+        <h2>📔 Мой дневник</h2>
+        <button class="add-btn-small" onclick="openDiaryEntryModal()" title="Новая запись">+</button>
+      </div>
+      <div id="diary-entries" class="diary-entries">
+        <p class="empty-state">Пока нет записей. Нажми + чтобы начать!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Правила -->
+  <div class="page" id="rules">
+    <div class="card">
+      <h2>📜 Наши правила</h2>
+      <ul id="rules-list" class="rules-list">
+        <li>📱 Телефон до 21:00</li>
+        <li>🛏 Сон важнее экрана</li>
+        <li>🌸 Ошибаться можно</li>
+        <li>❤️ Родители всегда рядом</li>
+      </ul>
+      <button class="action-button" onclick="openRuleModal()">Добавить правило</button>
+    </div>
+  </div>
+
+  <!-- Дашборд -->
+  <div class="page" id="stats">
+    <div class="card">
+      <h2>📊 Дашборд</h2>
+      <div id="weekly-stats-content">
+        <p class="empty-state">Загрузка данных...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Админка -->
+<div class="admin-panel" id="admin-panel">
+  <div class="admin-content">
+    <div class="admin-header">
+      <h2>⚙️ Админка</h2>
+      <button class="close-btn" onclick="toggleAdmin()">×</button>
+    </div>
+    
+    <div class="admin-section">
+      <h3>📝 Управление задачами</h3>
+      <input type="text" id="admin-task-input" placeholder="Новое задание" />
+      <select id="admin-task-type">
+        <option value="checklist">Чек-лист</option>
+        <option value="kanban">Канбан</option>
+      </select>
+      <button class="admin-btn" onclick="addTaskFromAdmin()">Добавить задачу</button>
+    </div>
+    
+    <div class="admin-section">
+      <h3>⚙️ Настройка курса</h3>
+      <input type="number" id="admin-stars-to-money" placeholder="Звёзд для выплаты" min="1" />
+      <input type="number" id="admin-money-per-stars" placeholder="Рублей за выплату" min="1" />
+      <button class="admin-btn" onclick="saveSettings()">Сохранить курс</button>
+    </div>
+    
+    <div class="admin-section">
+      <h3>🎯 Цель копилки</h3>
+      <input type="text" id="admin-goal-name" placeholder="Название цели" />
+      <input type="number" id="admin-goal-amount" placeholder="Сумма (₽)" min="0" />
+      <button class="admin-btn" onclick="setGoalFromAdmin()">Установить цель</button>
+    </div>
+    
+    <div class="admin-section">
+      <h3>💰 Управление деньгами</h3>
+      <input type="number" id="admin-add-money" placeholder="Добавить в копилку (₽)" min="0" />
+      <button class="admin-btn" onclick="addMoneyToPiggy()">Добавить</button>
+      <input type="number" id="admin-add-stars" placeholder="Добавить звёзды" min="0" />
+      <button class="admin-btn" onclick="addStars()">Добавить ⭐</button>
+      <button class="admin-btn danger" onclick="payOutMoney()">Выплатить деньги</button>
+    </div>
+    
+    <div class="admin-section">
+      <h3>🔄 Сброс данных</h3>
+      <button class="admin-btn danger" onclick="resetDailyTasks()">Сбросить дела на сегодня</button>
+      <button class="admin-btn danger" onclick="clearAllData()">Очистить все данные</button>
+    </div>
+    
+    <div class="admin-section">
+      <h3>💾 Данные</h3>
+      <button class="admin-btn" onclick="exportData()">Экспорт</button>
+      <button class="admin-btn" onclick="importData()">Импорт</button>
+      <input type="file" id="import-file" accept=".json" style="display: none;" onchange="handleFileImport(event)" />
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно добавления задачи -->
+<div class="modal" id="add-task-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Добавить задачу</h3>
+      <button class="close-btn" onclick="closeAddTaskModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" id="new-task-text" placeholder="Название задачи" />
+      <button class="submit-btn" onclick="addTask()">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно цели -->
+<div class="modal" id="goal-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Установить цель</h3>
+      <button class="close-btn" onclick="closeGoalModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" id="goal-name-input" placeholder="Название цели (например: Наушники)" />
+      <input type="number" id="goal-amount-input" placeholder="Сумма (₽)" min="0" />
+      <button class="submit-btn" onclick="setGoal()">Установить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно правила -->
+<div class="modal" id="rule-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Добавить правило</h3>
+      <button class="close-btn" onclick="closeRuleModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" id="new-rule-text" placeholder="Текст правила" />
+      <button class="submit-btn" onclick="addRule()">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно награды -->
+<div class="modal" id="reward-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="reward-title">🎉 Награда!</h3>
+      <button class="close-btn" onclick="closeRewardModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p id="reward-message" style="text-align: center; font-size: 18px; margin: 20px 0;"></p>
+      <button class="submit-btn" onclick="closeRewardModal()">Отлично!</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно конвертации звезд в деньги -->
+<div class="modal" id="stars-exchange-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>⭐ Конвертация звёзд в деньги</h3>
+      <button class="close-btn" onclick="closeStarsExchangeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <div style="font-size: 24px; font-weight: 700; margin-bottom: 8px;">
+          <span id="exchange-total-stars">0</span> ⭐
+        </div>
+        <div style="font-size: 14px; color: #666;">
+          Курс: <span id="exchange-rate-text">15 ⭐ = 200 ₽</span>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Сколько звёзд обменять?</label>
+        <input type="number" id="exchange-stars-input" placeholder="Введите количество" min="1" style="width: 100%; padding: 12px; font-size: 16px; border: 2px solid #e5e7eb; border-radius: 8px; box-sizing: border-box;" />
+      </div>
+      
+      <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+          <span style="color: #666;">Вы получите:</span>
+          <span id="exchange-money-result" style="font-size: 20px; font-weight: 700; color: #10b981;">0 ₽</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 14px; color: #666;">
+          <span>Останется звёзд:</span>
+          <span id="exchange-stars-remaining">0 ⭐</span>
+        </div>
+      </div>
+      
+      <button class="submit-btn" onclick="exchangeStarsToMoney()" id="exchange-submit-btn" style="width: 100%;">
+        Обменять
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно изменения суммы копилки -->
+<div class="modal" id="piggy-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="piggy-modal-title">Изменить сумму</h3>
+      <button class="close-btn" onclick="closePiggyModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="number" id="piggy-amount-input" placeholder="Введите сумму (₽)" min="0" step="1" autofocus />
+      <button class="submit-btn" onclick="savePiggyAmount()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно записи в дневник -->
+<div class="modal" id="diary-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="diary-modal-title">Новая запись</h3>
+      <button class="close-btn" onclick="closeDiaryEntryModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" id="diary-title-input" placeholder="Заголовок (необязательно)" />
+      <textarea id="diary-content-input" placeholder="Расскажи, что произошло сегодня, что ты чувствуешь, о чем думаешь..." rows="8"></textarea>
+      <button class="submit-btn" onclick="saveDiaryEntry()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно желания -->
+<div class="modal" id="wish-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>🎁 Добавить желание</h3>
+      <button class="close-btn" onclick="closeWishModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" id="wish-name-input" placeholder="Название желания" />
+      <input type="number" id="wish-price-input" placeholder="Цена (₽)" min="0" />
+      <textarea id="wish-description-input" placeholder="Описание (необязательно)" rows="3"></textarea>
+      <button class="submit-btn" onclick="saveWish()">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно профиля -->
+<div class="modal" id="profile-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>👤 Профиль</h3>
+      <button class="close-btn" onclick="closeProfileModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="profile-avatar-large">
+        <div class="avatar-circle-large" id="profile-avatar-large">👤</div>
+        <input type="file" id="avatar-upload" accept="image/*" style="display: none;" onchange="handleAvatarUpload(event)" />
+        <button class="change-avatar-btn" onclick="document.getElementById('avatar-upload').click()">Изменить фото</button>
+      </div>
+      
+      <div class="profile-form">
+        <div class="form-group">
+          <label for="profile-name-input">Имя</label>
+          <input type="text" id="profile-name-input" placeholder="Введите имя" maxlength="50" />
+        </div>
+        
+        <div class="form-group">
+          <label>Пол</label>
+          <div class="gender-selector">
+            <button class="gender-btn" data-gender="girl" onclick="selectGender('girl')">
+              <span class="gender-icon">👧</span>
+              <span class="gender-label">Девочка</span>
+            </button>
+            <button class="gender-btn" data-gender="boy" onclick="selectGender('boy')">
+              <span class="gender-icon">👦</span>
+              <span class="gender-label">Мальчик</span>
+            </button>
+            <button class="gender-btn" data-gender="none" onclick="selectGender('none')">
+              <span class="gender-icon">👤</span>
+              <span class="gender-label">Не указано</span>
+            </button>
+          </div>
+        </div>
+        
+        <button class="submit-btn" onclick="saveProfile()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно кадрирования фото -->
+<div class="modal" id="crop-modal">
+  <div class="modal-content crop-modal-content">
+    <div class="modal-header">
+      <h3>✂️ Кадрирование фото</h3>
+      <button class="close-btn" onclick="closeCropModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="crop-container">
+        <div class="crop-preview" id="crop-preview">
+          <div class="crop-mask"></div>
+          <div class="crop-image-wrapper" id="crop-image-wrapper">
+            <img id="crop-image" src="" alt="Preview" draggable="false" />
+          </div>
+        </div>
+      </div>
+      <div class="crop-hint">
+        <p>💡 Перемещайте фото и увеличивайте/уменьшайте пальцами или колесом мыши</p>
+      </div>
+      <div class="crop-actions">
+        <button class="cancel-btn" onclick="closeCropModal()">Отмена</button>
+        <button class="submit-btn" onclick="applyCrop()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="menu">
+  <button class="active" onclick="openPage('checklist', this)">
+    <span class="menu-icon">✅</span>
+    <span class="menu-label">Дела</span>
+  </button>
+  <button onclick="openPage('kanban', this)">
+    <span class="menu-icon">📋</span>
+    <span class="menu-label">Задания</span>
+  </button>
+  <button onclick="openPage('piggy', this)">
+    <span class="menu-icon">🎯</span>
+    <span class="menu-label">Цель</span>
+  </button>
+  <button onclick="openPage('diary', this)">
+    <span class="menu-icon">📔</span>
+    <span class="menu-label">Дневник</span>
+  </button>
+  <button onclick="openPage('stats', this)">
+    <span class="menu-icon">📊</span>
+    <span class="menu-label">Дашборд</span>
+  </button>
+  <button onclick="openPage('rules', this)">
+    <span class="menu-icon">📜</span>
+    <span class="menu-label">Правила</span>
+  </button>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
