@@ -86,18 +86,25 @@ jobs:
 WORKFLOWEOF
 )
 
-# Кодируем в base64
-WORKFLOW_B64=$(echo "$WORKFLOW_CONTENT" | base64)
+# Кодируем в base64 (одна строка без переносов для JSON)
+WORKFLOW_B64=$(echo "$WORKFLOW_CONTENT" | base64 | tr -d '\n')
+
+# Создаем JSON payload с правильным экранированием
+JSON_PAYLOAD=$(cat <<JSONEOF
+{
+  "message": "Add GitHub Actions workflow",
+  "content": "$WORKFLOW_B64",
+  "branch": "main"
+}
+JSONEOF
+)
 
 # Создаем файл через API
 RESPONSE=$(curl -s -w "\n%{http_code}" -X PUT \
   -H "Authorization: token $GITHUB_TOKEN" \
   -H "Accept: application/vnd.github.v3+json" \
-  -d "{
-    \"message\": \"Add GitHub Actions workflow\",
-    \"content\": \"$WORKFLOW_B64\",
-    \"branch\": \"main\"
-  }" \
+  -H "Content-Type: application/json" \
+  -d "$JSON_PAYLOAD" \
   "https://api.github.com/repos/$REPO/contents/.github/workflows/deploy.yml")
 
 HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
@@ -174,10 +181,11 @@ if [ -n "$SSH_PASS" ]; then
     else
         echo -e "${BLUE}Подключение к серверу...${NC}"
         sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" << EOF
-            mkdir -p $SERVER_PATH
-            cd $SERVER_PATH
+            set -e
+            mkdir -p "$SERVER_PATH"
+            cd "$SERVER_PATH"
             if [ ! -d .git ]; then
-                git clone https://github.com/$REPO.git .
+                git clone "https://github.com/$REPO.git" .
             fi
             echo "✅ Сервер настроен"
 EOF
@@ -187,10 +195,11 @@ else
     echo -e "${BLUE}Попытка подключения по SSH ключу...${NC}"
     if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" "echo 'Connected'" 2>/dev/null; then
         ssh "$SERVER_USER@$SERVER_IP" << EOF
-            mkdir -p $SERVER_PATH
-            cd $SERVER_PATH
+            set -e
+            mkdir -p "$SERVER_PATH"
+            cd "$SERVER_PATH"
             if [ ! -d .git ]; then
-                git clone https://github.com/$REPO.git .
+                git clone "https://github.com/$REPO.git" .
             fi
             echo "✅ Сервер настроен"
 EOF
@@ -218,12 +227,21 @@ else
 fi
 
 if [ -n "$PUB_KEY" ]; then
-    if ssh -o ConnectTimeout=5 "$SERVER_USER@$SERVER_IP" "echo '$PUB_KEY' >> ~/.ssh/authorized_keys" 2>/dev/null; then
+    # Создаем директорию .ssh если не существует и добавляем ключ
+    SSH_CMD="mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '$PUB_KEY' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+    
+    if ssh -o ConnectTimeout=5 "$SERVER_USER@$SERVER_IP" "$SSH_CMD" 2>/dev/null; then
         echo -e "${GREEN}✅ SSH ключ добавлен на сервер${NC}"
     else
+        SSH_ERROR=$(ssh -o ConnectTimeout=5 "$SERVER_USER@$SERVER_IP" "$SSH_CMD" 2>&1)
+        echo -e "${RED}❌ Ошибка при добавлении ключа:${NC}"
+        echo -e "${YELLOW}$SSH_ERROR${NC}"
         echo -e "${YELLOW}⚠️  Добавьте ключ вручную:${NC}"
         echo -e "${BLUE}$PUB_KEY${NC}"
-        echo -e "${BLUE}Добавьте в ~/.ssh/authorized_keys на сервере${NC}"
+        echo -e "${BLUE}Выполните на сервере:${NC}"
+        echo -e "${BLUE}  mkdir -p ~/.ssh && chmod 700 ~/.ssh${NC}"
+        echo -e "${BLUE}  echo '$PUB_KEY' >> ~/.ssh/authorized_keys${NC}"
+        echo -e "${BLUE}  chmod 600 ~/.ssh/authorized_keys${NC}"
     fi
 fi
 

@@ -48,8 +48,8 @@ if [ -n "$1" ]; then
         exit 1
     fi
     
-    # Выполняем деплой через SSH
-    ssh $SERVER_USER_HOST "cd $SERVER_PATH && git pull origin main"
+    # Выполняем деплой через SSH (с правильным экранированием путей)
+    ssh "$SERVER_USER_HOST" "cd \"$SERVER_PATH\" && git pull origin main"
     
     echo -e "${GREEN}✅ Деплой завершен успешно!${NC}"
 else
