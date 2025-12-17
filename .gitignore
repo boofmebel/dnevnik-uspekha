@@ -29,3 +29,5 @@ node_modules/
 *.bak
 *.backup
 
+SSH_PRIVATE_KEY.txt
+SSH_PUBLIC_KEY.txt
