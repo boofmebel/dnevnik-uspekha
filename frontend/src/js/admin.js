@@ -35,20 +35,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
+  // Показываем инструкцию если нет токена
+  const loadingEl = document.getElementById('admin-loading');
+  
   // Проверяем авторизацию
-  const token = apiClient.getAccessToken();
+  let token = apiClient.getAccessToken();
   if (!token) {
     // Пробуем получить токен из localStorage (временное решение для админа)
-    // В production должно быть через отдельную страницу входа
     const savedToken = localStorage.getItem('admin_token');
     if (savedToken) {
       apiClient.setAccessToken(savedToken);
-    } else {
-      // Если нет токена, показываем сообщение и редиректим на главную
-      alert('Требуется авторизация. Пожалуйста, войдите как администратор на главной странице.');
-      window.location.href = '/';
-      return;
+      token = savedToken;
     }
+  }
+  
+  if (!token) {
+    // Если нет токена, показываем инструкцию
+    if (loadingEl) {
+      loadingEl.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">🔐</div>
+          <h2 style="margin-bottom: 1rem;">Требуется авторизация</h2>
+          <div style="margin-bottom: 2rem; line-height: 1.8;">
+            <p>Для доступа к админ-панели необходимо:</p>
+            <ol style="text-align: left; display: inline-block; margin-top: 1rem;">
+              <li>Войти как администратор на главной странице</li>
+              <li>Или сохранить токен в консоли браузера</li>
+            </ol>
+          </div>
+          <button onclick="window.location.href='/'" style="padding: 0.75rem 2rem; background: #10b981; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer;">
+            Перейти на главную
+          </button>
+        </div>
+      `;
+    }
+    return;
   }
 
   try {
