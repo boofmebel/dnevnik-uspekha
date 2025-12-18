@@ -1,335 +1,37 @@
-// Данные приложения
-let appData = {
-  checklist: [],
-  kanban: {
-    todo: [],
-    doing: [],
-    done: []
-  },
-  piggy: {
-    amount: 0,
-    goal: {
-      name: '',
-      amount: 0
-    },
-    history: []
-  },
-  stars: {
-    today: 0,
-    total: 0,
-    history: [],
-    streak: {
-      current: 0,
-      lastDate: null,
-      history: []
-    },
-    claimedRewards: []
-  },
-  money: {
-    total: 0,
-    history: []
-  },
-  wallet: {
-    amount: 0,
-    history: []
-  },
-  rules: [
-    '📱 Телефон до 21:00',
-    '🛏 Сон важнее экрана',
-    '🌸 Ошибаться можно',
-    '❤️ Родители всегда рядом'
-  ],
-  settings: {
-    starsToMoney: 15,
-    moneyPerStars: 200
-  },
-  weeklyStats: {
-    days: [],
-    lastWeek: []
-  },
-  diary: [],
-  wishlist: [],
-  profile: {
-    avatar: null,
-    name: 'Ребёнок',
-    gender: 'none' // 'girl', 'boy', 'none'
-  },
-  lastResetDate: null
+// ============================================
+// МОДУЛЬ ОТОБРАЖЕНИЯ И ИНТЕРФЕЙСА (ui.js)
+// ============================================
+// Все функции для работы с UI, рендеринг, модальные окна
+
+// Переменные для кадрирования изображения
+let cropImageData = null;
+let cropState = {
+  scale: 1,
+  x: 0,
+  y: 0,
+  isDragging: false,
+  startX: 0,
+  startY: 0,
+  startImageX: 0,
+  startImageY: 0,
+  imageWidth: 0,
+  imageHeight: 0
 };
 
-// Функции для получения настроек (обратная совместимость)
-function getStarsToMoney() {
-  return appData.settings?.starsToMoney || 15;
-}
-
-function getMoneyPerStars() {
-  return appData.settings?.moneyPerStars || 200;
-}
-
-// Инициализация
-document.addEventListener('DOMContentLoaded', () => {
-  loadData();
-  initSettings(); // Инициализация настроек для старых данных
-  checkDailyReset();
-  initDefaultTasks();
-  renderChecklist();
-  renderKanban();
-  renderPiggy();
-  renderMoney();
-  renderRules();
-  updateStars();
-  updateProfileAvatar();
-  
-  // Применяем сохранённые цвета пола
-  const gender = appData.profile?.gender || 'none';
-  applyGenderColors(gender);
-  
-  // Обновляем имя в шапке при загрузке
-  const headerNameEl = document.getElementById('header-name');
-  if (headerNameEl) {
-    const name = appData.profile?.name || 'Ребёнок';
-    headerNameEl.textContent = name;
-  }
-  
-  checkWeeklyReset();
-});
-
-// Работа с данными
-function loadData() {
-  const saved = localStorage.getItem('responsibilityAppData');
-  if (saved) {
-    // Безопасный парсинг JSON согласно rules.md
-    const parsed = safeJsonParse(saved, null);
-    if (!parsed) {
-      console.error('Ошибка загрузки данных: неверный формат JSON');
-      return;
-    }
-    
-    try {
-      // Объединяем с дефолтными значениями для обратной совместимости
-      appData = {
-        ...appData,
-        ...parsed,
-        stars: {
-          ...appData.stars,
-          ...(parsed.stars || {}),
-          streak: parsed.stars?.streak || appData.stars.streak,
-          claimedRewards: parsed.stars?.claimedRewards || []
-        },
-        settings: parsed.settings || appData.settings,
-        weeklyStats: parsed.weeklyStats || appData.weeklyStats,
-        wallet: parsed.wallet || appData.wallet,
-        profile: {
-          ...appData.profile,
-          ...(parsed.profile || {}),
-          gender: parsed.profile?.gender || 'none'
-        }
-      };
-    } catch (e) {
-      console.error('Ошибка загрузки данных:', e);
-      // Восстанавливаем дефолтные данные при критической ошибке
-      appData = { ...appData };
-    }
-  }
-}
-
-function initSettings() {
-  // Инициализация настроек для старых данных
-  if (!appData.settings) {
-    appData.settings = {
-      starsToMoney: 15,
-      moneyPerStars: 200
-    };
-    saveData();
-  }
-}
-
-function saveData() {
-  try {
-    // Валидация данных перед сохранением
-    if (!appData || typeof appData !== 'object') {
-      console.error('Ошибка сохранения: неверная структура данных');
-      return false;
-    }
-    
-    // Проверка размера данных перед сохранением
-    const sizeCheck = checkStorageSize(appData);
-    if (!sizeCheck.valid) {
-      console.error('Ошибка сохранения:', sizeCheck.error);
-      alert('Ошибка сохранения данных: ' + sizeCheck.error);
-      return false;
-    }
-    
-    // Безопасная сериализация
-    const jsonString = JSON.stringify(appData);
-    if (!jsonString || jsonString === 'null' || jsonString === 'undefined') {
-      console.error('Ошибка сохранения: неверная сериализация данных');
-      return false;
-    }
-    
-    localStorage.setItem('responsibilityAppData', jsonString);
-    return true;
-  } catch (error) {
-    console.error('Ошибка сохранения данных:', error);
-    // Обработка ошибки переполнения localStorage
-    if (error.name === 'QuotaExceededError' || error.code === 22) {
-      alert('Недостаточно места в хранилище. Попробуйте удалить старые данные.');
-    } else if (error.name === 'SecurityError' || error.code === 18) {
-      alert('Ошибка доступа к хранилищу. Проверьте настройки браузера.');
-    } else {
-      alert('Ошибка сохранения данных. Попробуйте позже.');
-    }
-    return false;
-  }
-}
-
-// Ежедневный сброс
-function checkDailyReset() {
-  const today = new Date().toDateString();
-  if (appData.lastResetDate !== today) {
-    // Проверяем streak перед сбросом
-    checkStreak();
-    resetDailyTasks();
-    appData.lastResetDate = today;
-    saveData();
-  }
-}
-
-function resetDailyTasks() {
-  // Сохраняем статистику дня перед сбросом
-  saveDailyStats();
-  
-  // Сбрасываем чек-лист (но сохраняем задачи)
-  appData.checklist.forEach(task => {
-    task.completed = false;
-  });
-  appData.stars.today = 0;
-  saveData();
-  renderChecklist();
-  updateStars();
-}
-
-// Сохранение статистики дня
-function saveDailyStats() {
-  const today = new Date();
-  const completedTasks = appData.checklist.filter(t => t.completed).length;
-  const starsEarned = appData.stars.today;
-  
-  const dayStat = {
-    date: today.toISOString().split('T')[0],
-    tasksCompleted: completedTasks,
-    starsEarned: starsEarned
-  };
-  
-  // Удаляем старую запись за этот день, если есть
-  appData.weeklyStats.days = appData.weeklyStats.days.filter(
-    d => d.date !== dayStat.date
-  );
-  appData.weeklyStats.days.push(dayStat);
-  
-  // Храним только последние 14 дней
-  appData.weeklyStats.days.sort((a, b) => new Date(b.date) - new Date(a.date));
-  appData.weeklyStats.days = appData.weeklyStats.days.slice(0, 14);
-  
-  saveData();
-}
-
-// Проверка и обновление streak
-function checkStreak() {
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toISOString().split('T')[0];
-  
-  // Подсчитываем выполненные задачи за вчера
-  const yesterdayStats = appData.weeklyStats.days.find(d => d.date === yesterdayStr);
-  const completedTasks = yesterdayStats?.tasksCompleted || 0;
-  
-  // Инициализация streak
-  if (!appData.stars.streak) {
-    appData.stars.streak = {
-      current: 0,
-      lastDate: null,
-      history: []
-    };
-  }
-  
-  const streak = appData.stars.streak;
-  
-  // Если выполнено 4+ задач вчера
-  if (completedTasks >= 4) {
-    // Проверяем, был ли вчерашний день уже засчитан
-    if (streak.lastDate !== yesterdayStr) {
-      streak.current += 1;
-      streak.lastDate = todayStr;
-      
-      // Проверяем бонусы за серии
-      checkStreakBonus();
-      
-      saveData();
-    }
-  } else {
-    // Если не выполнено 4+ задач, сбрасываем streak
-    if (streak.current > 0) {
-      streak.history.push({
-        days: streak.current,
-        date: yesterdayStr
-      });
-    }
-    streak.current = 0;
-    streak.lastDate = null;
-    saveData();
-  }
-}
-
-// Бонусы за серии дней
-function checkStreakBonus() {
-  const streak = appData.stars.streak.current;
-  let bonus = 0;
-  let description = '';
-  
-  if (streak === 3) {
-    bonus = 10;
-    description = 'Бонус за 3 дня подряд! 🔥';
-  } else if (streak === 7) {
-    bonus = 50;
-    description = 'Бонус за неделю подряд! 🔥🔥';
-  } else if (streak === 14) {
-    bonus = 150;
-    description = 'Бонус за 2 недели подряд! 🔥🔥🔥';
-  } else if (streak === 30) {
-    bonus = 500;
-    description = 'Бонус за месяц подряд! 🔥🔥🔥🔥';
-  }
-  
-  if (bonus > 0) {
-    addMoneyToPiggyDirect(bonus, description);
-    addMoneyHistory('streak', bonus, description);
-    appData.piggy.history.push({
-      date: new Date().toISOString(),
-      type: 'add',
-      amount: bonus,
-      description: description
-    });
-    saveData();
-    renderPiggy();
-    
-    // Показываем уведомление
-    showStreakNotification(streak, bonus);
-  }
-}
-
+// Уведомление о streak
 function showStreakNotification(days, bonus) {
-  // Создаем временное уведомление
   const notification = document.createElement('div');
   notification.className = 'streak-notification';
-  notification.innerHTML = `
-    <div class="streak-notification-content">
-      <h3>🔥 Серия ${days} дней! 🔥</h3>
-      <p>Бонус: +${bonus} ₽</p>
-    </div>
-  `;
+  
+  const content = document.createElement('div');
+  content.className = 'streak-notification-content';
+  
+  const h3 = createTextElement('h3', `🔥 Серия ${days} дней! 🔥`, '');
+  const p = createTextElement('p', `Бонус: +${bonus} ₽`, '');
+  
+  content.appendChild(h3);
+  content.appendChild(p);
+  notification.appendChild(content);
   document.body.appendChild(notification);
   
   setTimeout(() => {
@@ -340,47 +42,6 @@ function showStreakNotification(days, bonus) {
     notification.classList.remove('show');
     setTimeout(() => notification.remove(), 300);
   }, 3000);
-}
-
-// Еженедельный сброс статистики
-function checkWeeklyReset() {
-  const today = new Date();
-  const dayOfWeek = today.getDay(); // 0 = воскресенье
-  
-  // Если понедельник (1) и есть данные за прошлую неделю
-  if (dayOfWeek === 1) {
-    const lastWeekData = appData.weeklyStats.days.filter(d => {
-      const date = new Date(d.date);
-      const daysAgo = Math.floor((today - date) / (1000 * 60 * 60 * 24));
-      return daysAgo >= 7 && daysAgo < 14;
-    });
-    
-    if (lastWeekData.length > 0 && appData.weeklyStats.lastWeek.length === 0) {
-      appData.weeklyStats.lastWeek = [...lastWeekData];
-      saveData();
-    }
-  }
-}
-
-// Инициализация задач по умолчанию
-function initDefaultTasks() {
-  if (appData.checklist.length === 0) {
-    appData.checklist = [
-      { id: Date.now(), text: 'Встала и проснулась', completed: false, stars: 1 },
-      { id: Date.now() + 1, text: 'Заправила кровать', completed: false, stars: 1 },
-      { id: Date.now() + 2, text: 'Собралась в школу', completed: false, stars: 1 },
-      { id: Date.now() + 3, text: 'Сделала учи.ру', completed: false, stars: 2 },
-      { id: Date.now() + 4, text: 'Убрала комнату (5 мин)', completed: false, stars: 1 }
-    ];
-    saveData();
-  }
-  
-  if (appData.kanban.todo.length === 0 && appData.kanban.doing.length === 0 && appData.kanban.done.length === 0) {
-    appData.kanban.todo = [
-      { id: Date.now(), text: 'Учи.ру' }
-    ];
-    saveData();
-  }
 }
 
 // Навигация
@@ -413,7 +74,8 @@ function renderChecklist() {
   container.innerHTML = '';
   
   if (appData.checklist.length === 0) {
-    container.innerHTML = '<li class="empty-state">Нет задач</li>';
+    const emptyLi = createTextElement('li', 'Нет задач', 'empty-state');
+    container.appendChild(emptyLi);
     return;
   }
   
@@ -606,13 +268,33 @@ function renderKanbanColumn(column, tasks) {
     taskEl.className = 'task';
     taskEl.draggable = true;
     taskEl.dataset.id = task.id;
-    taskEl.innerHTML = `
-      <span class="task-text">${task.text}</span>
-      <div class="task-actions">
-        ${column !== 'todo' ? `<button class="task-move" onclick="moveTask(${task.id}, '${column}', 'prev')" title="Назад">←</button>` : ''}
-        ${column !== 'done' ? `<button class="task-move" onclick="moveTask(${task.id}, '${column}', 'next')" title="Вперёд">→</button>` : ''}
-      </div>
-    `;
+    
+    // Безопасное создание элементов вместо innerHTML
+    const taskText = createTextElement('span', task.text || '', 'task-text');
+    taskEl.appendChild(taskText);
+    
+    const taskActions = document.createElement('div');
+    taskActions.className = 'task-actions';
+    
+    if (column !== 'todo') {
+      const prevBtn = document.createElement('button');
+      prevBtn.className = 'task-move';
+      prevBtn.title = 'Назад';
+      prevBtn.textContent = '←';
+      prevBtn.onclick = () => moveTask(task.id, column, 'prev');
+      taskActions.appendChild(prevBtn);
+    }
+    
+    if (column !== 'done') {
+      const nextBtn = document.createElement('button');
+      nextBtn.className = 'task-move';
+      nextBtn.title = 'Вперёд';
+      nextBtn.textContent = '→';
+      nextBtn.onclick = () => moveTask(task.id, column, 'next');
+      taskActions.appendChild(nextBtn);
+    }
+    
+    taskEl.appendChild(taskActions);
     
     // Drag and drop
     taskEl.addEventListener('dragstart', (e) => {
@@ -861,7 +543,8 @@ function renderPiggyHistory() {
     container.innerHTML = '';
     
     if (!appData.piggy || !appData.piggy.history || !Array.isArray(appData.piggy.history) || appData.piggy.history.length === 0) {
-      container.innerHTML = '<p class="empty-state">Нет истории</p>';
+      const emptyP = createTextElement('p', 'Нет истории', 'empty-state');
+      container.appendChild(emptyP);
       return;
     }
     
@@ -1018,12 +701,17 @@ function renderStreak() {
   
   const streak = appData.stars.streak?.current || 0;
   if (streak > 0) {
-    streakContainer.innerHTML = `
-      <div class="streak-info">
-        <span class="streak-emoji">🔥</span>
-        <span class="streak-text">Серия: ${streak} дней</span>
-      </div>
-    `;
+    streakContainer.innerHTML = '';
+    
+    const streakInfo = document.createElement('div');
+    streakInfo.className = 'streak-info';
+    
+    const emoji = createTextElement('span', '🔥', 'streak-emoji');
+    const text = createTextElement('span', `Серия: ${streak} дней`, 'streak-text');
+    
+    streakInfo.appendChild(emoji);
+    streakInfo.appendChild(text);
+    streakContainer.appendChild(streakInfo);
     streakContainer.style.display = 'block';
   } else {
     streakContainer.style.display = 'none';
@@ -1118,39 +806,6 @@ function closeRewardModal() {
   document.getElementById('reward-modal').classList.remove('active');
 }
 
-function addStarHistory(description, amount) {
-  try {
-    // Инициализация stars если отсутствует
-    if (!appData.stars) {
-      appData.stars = { today: 0, total: 0, history: [], streak: { current: 0, lastDate: null, history: [] }, claimedRewards: [] };
-    }
-    if (!appData.stars.history || !Array.isArray(appData.stars.history)) {
-      appData.stars.history = [];
-    }
-    
-    const amountNum = parseInt(amount) || 0;
-    if (amountNum <= 0) {
-      console.error('Ошибка: неверное количество звёзд для истории');
-      return;
-    }
-    
-    appData.stars.history.push({
-      date: new Date().toISOString(),
-      description: description || 'Начисление звёзд',
-      amount: amountNum
-    });
-    
-    // Ограничиваем размер истории (последние 100 записей)
-    if (appData.stars.history.length > 100) {
-      appData.stars.history = appData.stars.history.slice(-100);
-    }
-    
-    saveData();
-  } catch (error) {
-    console.error('Ошибка при добавлении истории звёзд:', error);
-  }
-}
-
 function renderMoney() {
   const totalStarsEl = document.getElementById('total-stars');
   const totalMoneyEl = document.getElementById('total-money');
@@ -1189,73 +844,37 @@ function renderMoneyHistory() {
   container.innerHTML = '';
   
   if (appData.money.history.length === 0) {
-    container.innerHTML = '<p class="empty-state">Нет выплат</p>';
+    const emptyP = createTextElement('p', 'Нет выплат', 'empty-state');
+    container.appendChild(emptyP);
     return;
   }
   
   appData.money.history.slice(-10).reverse().forEach(item => {
     const div = document.createElement('div');
     div.className = 'history-item';
-    div.innerHTML = `
-      <div>
-        <div>💰 ${item.amount} ₽</div>
-        <div class="history-date">${formatDate(item.date)}</div>
-      </div>
-      <div>${item.description || ''}</div>
-    `;
+    
+    const leftDiv = document.createElement('div');
+    const amountDiv = createTextElement('div', `💰 ${item.amount || 0} ₽`, '');
+    const dateDiv = createTextElement('div', formatDate(item.date || new Date().toISOString()), 'history-date');
+    leftDiv.appendChild(amountDiv);
+    leftDiv.appendChild(dateDiv);
+    
+    const descDiv = createTextElement('div', item.description || '', '');
+    
+    div.appendChild(leftDiv);
+    div.appendChild(descDiv);
     container.appendChild(div);
   });
 }
 
-function addMoneyHistory(type, amount, description) {
-  try {
-    // Инициализация money если отсутствует
-    if (!appData.money) {
-      appData.money = { total: 0, history: [] };
-    }
-    if (!appData.money.history || !Array.isArray(appData.money.history)) {
-      appData.money.history = [];
-    }
-    
-    const amountNum = parseInt(amount) || 0;
-    if (amountNum <= 0) {
-      console.error('Ошибка: неверная сумма для истории');
-      return;
-    }
-    
-    if (!type || typeof type !== 'string') {
-      console.error('Ошибка: неверный тип операции');
-      return;
-    }
-    
-    appData.money.history.push({
-      date: new Date().toISOString(),
-      type: type,
-      amount: amountNum,
-      description: description || 'Операция'
-    });
-    
-    // Ограничиваем размер истории (последние 100 записей)
-    if (appData.money.history.length > 100) {
-      appData.money.history = appData.money.history.slice(-100);
-    }
-    
-    saveData();
-  } catch (error) {
-    console.error('Ошибка при добавлении истории денег:', error);
-  }
-}
-
-// Правила
 function renderRules() {
   const container = document.getElementById('rules-list');
   container.innerHTML = '';
   
   appData.rules.forEach((rule, index) => {
     const li = document.createElement('li');
-    li.innerHTML = `
-      <span>${rule}</span>
-    `;
+    const span = createTextElement('span', rule || '', '');
+    li.appendChild(span);
     container.appendChild(li);
   });
 }
@@ -1391,22 +1010,28 @@ function renderWeeklyStats() {
   const container = document.getElementById('weekly-stats-content');
   if (!container) return;
   
+  container.innerHTML = '';
+  
   const last7Days = appData.weeklyStats.days.slice(0, 7).reverse();
   const lastWeek = appData.weeklyStats.lastWeek || [];
   
-  let html = '<div class="stats-summary">';
+  // Создаём контейнер для сводки
+  const statsSummary = document.createElement('div');
+  statsSummary.className = 'stats-summary';
   
   // Текущая неделя
   const currentWeekTotal = last7Days.reduce((sum, d) => sum + (d.starsEarned || 0), 0);
   const currentWeekTasks = last7Days.reduce((sum, d) => sum + (d.tasksCompleted || 0), 0);
   
-  html += `
-    <div class="stat-card">
-      <h3>Эта неделя</h3>
-      <div class="stat-value">${currentWeekTotal} ⭐</div>
-      <div class="stat-label">${currentWeekTasks} задач</div>
-    </div>
-  `;
+  const currentWeekCard = document.createElement('div');
+  currentWeekCard.className = 'stat-card';
+  const currentWeekH3 = createTextElement('h3', 'Эта неделя', '');
+  const currentWeekValue = createTextElement('div', `${currentWeekTotal} ⭐`, 'stat-value');
+  const currentWeekLabel = createTextElement('div', `${currentWeekTasks} задач`, 'stat-label');
+  currentWeekCard.appendChild(currentWeekH3);
+  currentWeekCard.appendChild(currentWeekValue);
+  currentWeekCard.appendChild(currentWeekLabel);
+  statsSummary.appendChild(currentWeekCard);
   
   // Прошлая неделя
   if (lastWeek.length > 0) {
@@ -1414,39 +1039,59 @@ function renderWeeklyStats() {
     const lastWeekTasks = lastWeek.reduce((sum, d) => sum + (d.tasksCompleted || 0), 0);
     const diff = currentWeekTotal - lastWeekTotal;
     
-    html += `
-      <div class="stat-card">
-        <h3>Прошлая неделя</h3>
-        <div class="stat-value">${lastWeekTotal} ⭐</div>
-        <div class="stat-label">${lastWeekTasks} задач</div>
-        ${diff !== 0 ? `<div class="stat-diff ${diff > 0 ? 'positive' : 'negative'}">${diff > 0 ? '+' : ''}${diff} ⭐</div>` : ''}
-      </div>
-    `;
+    const lastWeekCard = document.createElement('div');
+    lastWeekCard.className = 'stat-card';
+    const lastWeekH3 = createTextElement('h3', 'Прошлая неделя', '');
+    const lastWeekValue = createTextElement('div', `${lastWeekTotal} ⭐`, 'stat-value');
+    const lastWeekLabel = createTextElement('div', `${lastWeekTasks} задач`, 'stat-label');
+    lastWeekCard.appendChild(lastWeekH3);
+    lastWeekCard.appendChild(lastWeekValue);
+    lastWeekCard.appendChild(lastWeekLabel);
+    
+    if (diff !== 0) {
+      const diffDiv = createTextElement('div', `${diff > 0 ? '+' : ''}${diff} ⭐`, `stat-diff ${diff > 0 ? 'positive' : 'negative'}`);
+      lastWeekCard.appendChild(diffDiv);
+    }
+    
+    statsSummary.appendChild(lastWeekCard);
   }
   
-  html += '</div>';
+  container.appendChild(statsSummary);
   
   // График по дням
-  html += '<div class="stats-chart"><h3>Звёзды по дням</h3><div class="chart-bars">';
+  const statsChart = document.createElement('div');
+  statsChart.className = 'stats-chart';
+  const chartH3 = createTextElement('h3', 'Звёзды по дням', '');
+  statsChart.appendChild(chartH3);
+  
+  const chartBars = document.createElement('div');
+  chartBars.className = 'chart-bars';
+  
+  const maxStars = Math.max(...last7Days.map(d => d.starsEarned || 0), 1);
   
   last7Days.forEach(day => {
     const date = new Date(day.date);
     const dayName = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'][date.getDay()];
-    const maxStars = Math.max(...last7Days.map(d => d.starsEarned || 0), 1);
     const height = ((day.starsEarned || 0) / maxStars) * 100;
     
-    html += `
-      <div class="chart-bar-item">
-        <div class="chart-bar" style="height: ${height}%"></div>
-        <div class="chart-label">${dayName}</div>
-        <div class="chart-value">${day.starsEarned || 0}⭐</div>
-      </div>
-    `;
+    const barItem = document.createElement('div');
+    barItem.className = 'chart-bar-item';
+    
+    const bar = document.createElement('div');
+    bar.className = 'chart-bar';
+    bar.style.height = `${height}%`;
+    
+    const label = createTextElement('div', dayName, 'chart-label');
+    const value = createTextElement('div', `${day.starsEarned || 0}⭐`, 'chart-value');
+    
+    barItem.appendChild(bar);
+    barItem.appendChild(label);
+    barItem.appendChild(value);
+    chartBars.appendChild(barItem);
   });
   
-  html += '</div></div>';
-  
-  container.innerHTML = html;
+  statsChart.appendChild(chartBars);
+  container.appendChild(statsChart);
 }
 
 function addMoneyToPiggy() {
@@ -1458,100 +1103,6 @@ function addMoneyToPiggy() {
   
   addMoneyToPiggyDirect(amount, 'Пополнение');
   document.getElementById('admin-add-money').value = '';
-}
-
-function addMoneyToPiggyDirect(amount, description) {
-  try {
-    // Валидация параметров
-    const amountNum = parseInt(amount) || 0;
-    if (amountNum <= 0) {
-      console.error('Ошибка: неверная сумма для добавления');
-      return false;
-    }
-    
-    // Инициализация piggy если отсутствует
-    if (!appData.piggy) {
-      appData.piggy = { amount: 0, goal: { name: '', amount: 0 }, history: [] };
-    }
-    if (!appData.piggy.history || !Array.isArray(appData.piggy.history)) {
-      appData.piggy.history = [];
-    }
-    
-    // Сохраняем исходное состояние для отката
-    const originalAmount = appData.piggy.amount || 0;
-    const originalHistoryLength = appData.piggy.history.length;
-    
-    appData.piggy.amount = (appData.piggy.amount || 0) + amountNum;
-    appData.piggy.history.push({
-      date: new Date().toISOString(),
-      type: 'add',
-      amount: amountNum,
-      description: description || 'Пополнение'
-    });
-    
-    if (!saveData()) {
-      // Откатываем изменение при ошибке сохранения
-      appData.piggy.amount = originalAmount;
-      appData.piggy.history = appData.piggy.history.slice(0, originalHistoryLength);
-      return false;
-    }
-    
-    renderPiggy();
-    return true;
-  } catch (error) {
-    console.error('Ошибка при добавлении денег в копилку:', error);
-    return false;
-  }
-}
-
-// Добавление денег в кошелек (из конвертации звезд)
-function addMoneyToWallet(amount, description) {
-  try {
-    // Валидация параметров
-    const amountNum = parseInt(amount) || 0;
-    if (amountNum <= 0) {
-      console.error('Ошибка: неверная сумма для добавления в кошелек');
-      return false;
-    }
-    
-    // Инициализация wallet если отсутствует
-    if (!appData.wallet) {
-      appData.wallet = { amount: 0, history: [] };
-    }
-    if (!appData.wallet.history || !Array.isArray(appData.wallet.history)) {
-      appData.wallet.history = [];
-    }
-    
-    // Сохраняем исходное состояние для отката
-    const originalAmount = appData.wallet.amount || 0;
-    const originalHistoryLength = appData.wallet.history.length;
-    
-    appData.wallet.amount = (appData.wallet.amount || 0) + amountNum;
-    appData.wallet.history.push({
-      date: new Date().toISOString(),
-      type: 'add',
-      amount: amountNum,
-      description: description || 'Пополнение кошелька'
-    });
-    
-    // Ограничиваем размер истории (последние 100 записей)
-    if (appData.wallet.history.length > 100) {
-      appData.wallet.history = appData.wallet.history.slice(-100);
-    }
-    
-    if (!saveData()) {
-      // Откатываем изменение при ошибке сохранения
-      appData.wallet.amount = originalAmount;
-      appData.wallet.history = appData.wallet.history.slice(0, originalHistoryLength);
-      return false;
-    }
-    
-    renderMoney();
-    return true;
-  } catch (error) {
-    console.error('Ошибка при добавлении денег в кошелек:', error);
-    return false;
-  }
 }
 
 function addStars() {
@@ -1673,51 +1224,6 @@ function handleFileImport(event) {
 }
 
 // Утилиты
-function formatDate(isoString) {
-  const date = new Date(isoString);
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${day}.${month}.${year} ${hours}:${minutes}`;
-}
-
-// Закрытие модальных окон по клику вне их
-document.querySelectorAll('.modal').forEach(modal => {
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      modal.classList.remove('active');
-    }
-  });
-});
-
-// Enter для добавления задач
-document.getElementById('new-task-text')?.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') {
-    addTask();
-  }
-});
-
-document.getElementById('goal-name-input')?.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') {
-    setGoal();
-  }
-});
-
-document.getElementById('new-rule-text')?.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') {
-    addRule();
-  }
-});
-
-document.getElementById('piggy-amount-input')?.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') {
-    savePiggyAmount();
-  }
-});
-
-// Дневник
 function renderDiary() {
   const container = document.getElementById('diary-entries');
   if (!container) return;
@@ -1725,7 +1231,8 @@ function renderDiary() {
   container.innerHTML = '';
   
   if (!appData.diary || appData.diary.length === 0) {
-    container.innerHTML = '<p class="empty-state">Пока нет записей. Нажми + чтобы начать!</p>';
+    const emptyP = createTextElement('p', 'Пока нет записей. Нажми + чтобы начать!', 'empty-state');
+    container.appendChild(emptyP);
     return;
   }
   
@@ -1796,30 +1303,6 @@ function saveDiaryEntry() {
   closeDiaryEntryModal();
 }
 
-function formatDiaryDate(isoString) {
-  const date = new Date(isoString);
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  
-  const dateStr = date.toDateString();
-  if (dateStr === today.toDateString()) {
-    return `Сегодня, ${hours}:${minutes}`;
-  } else if (dateStr === yesterday.toDateString()) {
-    return `Вчера, ${hours}:${minutes}`;
-  } else {
-    const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
-    return `${day} ${months[date.getMonth()]} ${year}, ${hours}:${minutes}`;
-  }
-}
-
-// Wishlist
 function renderWishlist() {
   const container = document.getElementById('wishlist-items');
   if (!container) return;
@@ -1827,20 +1310,32 @@ function renderWishlist() {
   container.innerHTML = '';
   
   if (!appData.wishlist || appData.wishlist.length === 0) {
-    container.innerHTML = '<p class="empty-state">Нет желаний</p>';
+    const emptyP = createTextElement('p', 'Нет желаний', 'empty-state');
+    container.appendChild(emptyP);
     return;
   }
   
   appData.wishlist.forEach(wish => {
     const wishEl = document.createElement('div');
     wishEl.className = 'wish-item';
-    wishEl.innerHTML = `
-      <div class="wish-content">
-        <div class="wish-name">${wish.name}</div>
-        ${wish.price ? `<div class="wish-price">${wish.price} ₽</div>` : ''}
-        ${wish.description ? `<div class="wish-description">${wish.description}</div>` : ''}
-      </div>
-    `;
+    
+    const wishContent = document.createElement('div');
+    wishContent.className = 'wish-content';
+    
+    const wishName = createTextElement('div', wish.name || '', 'wish-name');
+    wishContent.appendChild(wishName);
+    
+    if (wish.price) {
+      const wishPrice = createTextElement('div', `${wish.price} ₽`, 'wish-price');
+      wishContent.appendChild(wishPrice);
+    }
+    
+    if (wish.description) {
+      const wishDesc = createTextElement('div', wish.description, 'wish-description');
+      wishContent.appendChild(wishDesc);
+    }
+    
+    wishEl.appendChild(wishContent);
     container.appendChild(wishEl);
   });
 }
@@ -2291,19 +1786,7 @@ function exchangeStarsToMoney() {
   }
 }
 
-let cropImageData = null;
-let cropState = {
-  scale: 1,
-  x: 0,
-  y: 0,
-  isDragging: false,
-  startX: 0,
-  startY: 0,
-  startImageX: 0,
-  startImageY: 0,
-  imageWidth: 0,
-  imageHeight: 0
-};
+
 
 function handleAvatarUpload(event) {
   const file = event.target.files[0];

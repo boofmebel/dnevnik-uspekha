@@ -3,8 +3,11 @@
 Согласно rules.md: бизнес-логика в services
 """
 from typing import Optional
+from sqlalchemy.ext.asyncio import AsyncSession
 from core.security.jwt import create_access_token, create_refresh_token
+from core.security.password import hash_password, verify_password
 from repositories.user_repository import UserRepository
+from models.user import UserRole
 
 
 class AuthService:
@@ -14,15 +17,38 @@ class AuthService:
         self.user_repo = UserRepository(session)
         self.session = session
     
+    async def register(self, email: str, password: str, role: str = "parent") -> dict:
+        """Регистрация нового пользователя"""
+        # Проверка существования пользователя
+        existing_user = await self.user_repo.get_by_email(email)
+        if existing_user:
+            raise ValueError("Пользователь с таким email уже существует")
+        
+        # Хеширование пароля
+        password_hash = hash_password(password)
+        
+        # Создание пользователя
+        user = await self.user_repo.create({
+            "email": email,
+            "password_hash": password_hash,
+            "role": UserRole(role)
+        })
+        
+        return {
+            "id": user.id,
+            "email": user.email,
+            "role": user.role
+        }
+    
     async def authenticate(self, email: str, password: str) -> Optional[dict]:
         """Аутентификация пользователя"""
         user = await self.user_repo.get_by_email(email)
         if not user:
             return None
         
-        # Проверка пароля (в реальной реализации использовать passlib)
-        # if not verify_password(password, user.password_hash):
-        #     return None
+        # Проверка пароля
+        if not verify_password(password, user.password_hash):
+            return None
         
         return {
             "id": user.id,

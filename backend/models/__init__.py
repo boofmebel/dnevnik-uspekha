@@ -35,8 +35,9 @@ __all__ = [
     "Settings",
     "WeeklyStat",
     "Subscription",
-    "Notification",
-    "NotificationType",
-    "NotificationStatus",
-    "ParentConsent",
-]
+        "Notification",
+        "NotificationType",
+        "NotificationStatus",
+        "ParentConsent",
+        "ChildAccess",
+    ]
