@@ -122,7 +122,7 @@ async function loadAdminStats() {
     showLoading('recent-users-tbody');
     showLoading('recent-subscriptions-tbody');
     
-    const stats = await apiClient.get('/admin/stats');
+    const stats = await apiClient.getAdminStats();
     
     // Обновляем карточки статистики
     document.getElementById('stat-total-users').textContent = stats.total_users || 0;
@@ -193,10 +193,7 @@ async function loadUsers() {
     const search = document.getElementById('users-search').value;
     const skip = adminState.usersPage * adminState.pageSize;
     
-    let url = `/admin/users?skip=${skip}&limit=${adminState.pageSize}`;
-    if (role) url += `&role=${role}`;
-    
-    const users = await apiClient.get(url);
+    const users = await apiClient.getAdminUsers(skip, adminState.pageSize, role);
     
     // Фильтруем по поиску на клиенте (можно перенести на сервер)
     let filteredUsers = users;
@@ -242,7 +239,7 @@ async function loadChildren() {
     showLoading('children-tbody');
     
     const skip = adminState.childrenPage * adminState.pageSize;
-    const children = await apiClient.get(`/admin/children?skip=${skip}&limit=${adminState.pageSize}`);
+    const children = await apiClient.getAdminChildren(skip, adminState.pageSize);
     
     renderChildren(children);
     updatePagination('children', children.length);
@@ -281,10 +278,7 @@ async function loadSubscriptions() {
     const activeOnly = document.getElementById('subscriptions-active-only').checked;
     const skip = adminState.subscriptionsPage * adminState.pageSize;
     
-    let url = `/admin/subscriptions?skip=${skip}&limit=${adminState.pageSize}`;
-    if (activeOnly) url += '&active_only=true';
-    
-    const subscriptions = await apiClient.get(url);
+    const subscriptions = await apiClient.getAdminSubscriptions(skip, adminState.pageSize, activeOnly);
     
     renderSubscriptions(subscriptions);
     updatePagination('subscriptions', subscriptions.length);
@@ -323,10 +317,7 @@ async function loadNotifications() {
     const type = document.getElementById('notifications-type-filter').value;
     const skip = adminState.notificationsPage * adminState.pageSize;
     
-    let url = `/admin/notifications?skip=${skip}&limit=${adminState.pageSize}`;
-    if (type) url += `&type=${type}`;
-    
-    const notifications = await apiClient.get(url);
+    const notifications = await apiClient.getAdminNotifications(skip, adminState.pageSize, type);
     
     renderNotifications(notifications);
     updatePagination('notifications', notifications.length);
@@ -378,7 +369,7 @@ async function saveUser(event) {
   const role = document.getElementById('edit-user-role').value;
   
   try {
-    await apiClient.put(`/admin/users/${id}`, { email, role });
+    await apiClient.updateAdminUser(id, { email, role });
     showAdminSuccess('Пользователь обновлён');
     closeEditUserModal();
     loadUsers();
@@ -397,7 +388,7 @@ async function deleteUser(id, email) {
   }
   
   try {
-    await apiClient.delete(`/admin/users/${id}`);
+    await apiClient.deleteAdminUser(id);
     showAdminSuccess('Пользователь удалён');
     loadUsers();
     if (adminState.currentPage === 'dashboard') {
