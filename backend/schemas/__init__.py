@@ -13,6 +13,7 @@ from schemas.weekly_stats import WeeklyStatResponse, WeeklyStatsResponse
 from schemas.subscription import SubscriptionResponse, SubscriptionCancelRequest, SubscriptionRefundRequest, ParentConsentRequest, ParentConsentResponse
 from schemas.notification import NotificationResponse, ComplaintRequest, NotificationCreate
 from schemas.legal import LegalTextResponse
+from schemas.admin import AdminUserResponse, AdminChildResponse, AdminSubscriptionResponse, AdminNotificationResponse, AdminStatsResponse, AdminUserUpdate, AdminChildUpdate
 
 __all__ = [
     "LoginRequest",
@@ -54,4 +55,11 @@ __all__ = [
     "ComplaintRequest",
     "NotificationCreate",
     "LegalTextResponse",
+    "AdminUserResponse",
+    "AdminChildResponse",
+    "AdminSubscriptionResponse",
+    "AdminNotificationResponse",
+    "AdminStatsResponse",
+    "AdminUserUpdate",
+    "AdminChildUpdate",
 ]

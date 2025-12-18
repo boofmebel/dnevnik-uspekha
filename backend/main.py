@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 
 from core.config import settings
 from core.exceptions import setup_exception_handlers
-from routers import auth, users, children, tasks, stars, piggy, settings, weekly_stats, diary, wishlist, legal, subscription, support
+from routers import auth, users, children, tasks, stars, piggy, settings, weekly_stats, diary, wishlist, legal, subscription, support, admin
 
 app = FastAPI(
     title="Дневник успеха API",
@@ -52,6 +52,7 @@ app.include_router(wishlist.router, prefix="/api/wishlist", tags=["wishlist"])
 app.include_router(legal.router, prefix="/api/legal", tags=["legal"])
 app.include_router(subscription.router, prefix="/api/subscription", tags=["subscription"])
 app.include_router(support.router, prefix="/api/support", tags=["support"])
+app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 
 
 @app.get("/health")
