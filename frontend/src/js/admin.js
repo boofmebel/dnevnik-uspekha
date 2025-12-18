@@ -29,6 +29,12 @@ function debounceSearch(func, wait) {
 
 // Инициализация админки
 document.addEventListener('DOMContentLoaded', async () => {
+  // Проверяем, что мы на странице админки
+  if (!document.body.classList.contains('admin-body')) {
+    console.error('Это не страница админки!');
+    return;
+  }
+
   // Проверяем авторизацию
   const token = apiClient.getAccessToken();
   if (!token) {
@@ -38,6 +44,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (savedToken) {
       apiClient.setAccessToken(savedToken);
     } else {
+      // Если нет токена, показываем сообщение и редиректим на главную
+      alert('Требуется авторизация. Пожалуйста, войдите как администратор на главной странице.');
       window.location.href = '/';
       return;
     }
@@ -46,15 +54,32 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     // Проверяем права администратора
     await checkAdminAccess();
+    // Скрываем индикатор загрузки
+    const loadingEl = document.getElementById('admin-loading');
+    if (loadingEl) {
+      loadingEl.style.display = 'none';
+    }
     // Загружаем данные
     await loadAdminStats();
     // Показываем email пользователя
     showAdminUserInfo();
   } catch (error) {
-    showAdminError('Ошибка доступа: ' + error.message);
+    console.error('Ошибка доступа к админке:', error);
+    const loadingEl = document.getElementById('admin-loading');
+    if (loadingEl) {
+      loadingEl.innerHTML = `
+        <div style="text-align: center;">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">❌</div>
+          <div style="margin-bottom: 1rem;">Ошибка доступа: ${error.message}</div>
+          <div style="font-size: 0.9rem; opacity: 0.8;">Требуются права администратора</div>
+          <div style="margin-top: 2rem; font-size: 0.8rem; opacity: 0.6;">Перенаправление на главную страницу...</div>
+        </div>
+      `;
+    }
+    showAdminError('Ошибка доступа: ' + error.message + '. Требуются права администратора.');
     setTimeout(() => {
       window.location.href = '/';
-    }, 2000);
+    }, 3000);
   }
 });
 

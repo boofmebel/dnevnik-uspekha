@@ -8,6 +8,15 @@
   min-height: 100vh;
   padding: 0;
   margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Скрываем обычные элементы приложения, если они случайно загрузились */
+.admin-body header:not(.admin-header),
+.admin-body .container,
+.admin-body .page,
+.admin-body nav:not(.admin-nav) {
+  display: none !important;
 }
 
 /* Шапка админки */

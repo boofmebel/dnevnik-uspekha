@@ -5,13 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#1f2937" />
   <title>Админ-панель - Дневник успеха</title>
-  <link rel="stylesheet" href="static/css/styles.css?v=8" />
   <link rel="stylesheet" href="static/css/admin.css?v=1" />
   <script src="src/js/error-handler.js"></script>
   <script src="src/js/utils.js"></script>
   <script src="src/js/api.js"></script>
 </head>
 <body class="admin-body">
+  <!-- Индикатор загрузки -->
+  <div id="admin-loading" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #1f2937; color: white; display: flex; align-items: center; justify-content: center; z-index: 9999; font-size: 1.5rem;">
+    <div style="text-align: center;">
+      <div style="font-size: 3rem; margin-bottom: 1rem;">🔐</div>
+      <div>Загрузка админ-панели...</div>
+    </div>
+  </div>
   <!-- Шапка админки -->
   <header class="admin-header">
     <div class="admin-header-content">
