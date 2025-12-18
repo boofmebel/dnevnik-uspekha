@@ -4,7 +4,7 @@
 INSERT INTO users (email, password_hash, role, created_at)
 VALUES (
   '79059510009@mail.ru',
-  '$2b$12$qwla5dyJsTFjjTxUm3dwSObs.OV5jTIw/oLfNSDBFbAFG3p7rlJBW',
+  '$2b$12$BLUa4LJPoXR/tz3Iw1tXXuhPS.XPqqUh9gVyo9p8BAOm81wlsfdsa',
   'admin',
   NOW()
 )
