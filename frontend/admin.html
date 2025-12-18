@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1f2937" />
+  <title>Админ-панель - Дневник успеха</title>
+  <link rel="stylesheet" href="static/css/styles.css?v=8" />
+  <link rel="stylesheet" href="static/css/admin.css?v=1" />
+  <script src="src/js/error-handler.js"></script>
+  <script src="src/js/utils.js"></script>
+  <script src="src/js/api.js"></script>
+</head>
+<body class="admin-body">
+  <!-- Шапка админки -->
+  <header class="admin-header">
+    <div class="admin-header-content">
+      <div class="admin-header-left">
+        <h1>🔐 Админ-панель</h1>
+      </div>
+      <div class="admin-header-right">
+        <span id="admin-user-email" class="admin-user-info"></span>
+        <button class="admin-logout-btn" onclick="adminLogout()">Выход</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Навигация -->
+  <nav class="admin-nav">
+    <button class="nav-btn active" data-page="dashboard" onclick="showAdminPage('dashboard')">
+      📊 Dashboard
+    </button>
+    <button class="nav-btn" data-page="users" onclick="showAdminPage('users')">
+      👥 Пользователи
+    </button>
+    <button class="nav-btn" data-page="children" onclick="showAdminPage('children')">
+      👧 Дети
+    </button>
+    <button class="nav-btn" data-page="subscriptions" onclick="showAdminPage('subscriptions')">
+      💳 Подписки
+    </button>
+    <button class="nav-btn" data-page="notifications" onclick="showAdminPage('notifications')">
+      🔔 Уведомления
+    </button>
+  </nav>
+
+  <!-- Контент -->
+  <main class="admin-main">
+    <!-- Dashboard -->
+    <div id="admin-page-dashboard" class="admin-page active">
+      <div class="admin-page-header">
+        <h2>📊 Статистика</h2>
+        <button class="admin-refresh-btn" onclick="loadAdminStats()">🔄 Обновить</button>
+      </div>
+
+      <!-- Карточки статистики -->
+      <div class="admin-stats-grid">
+        <div class="admin-stat-card">
+          <div class="stat-icon">👥</div>
+          <div class="stat-content">
+            <div class="stat-label">Всего пользователей</div>
+            <div class="stat-value" id="stat-total-users">-</div>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="stat-icon">👨‍👩‍👧</div>
+          <div class="stat-content">
+            <div class="stat-label">Родителей</div>
+            <div class="stat-value" id="stat-total-parents">-</div>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="stat-icon">👧</div>
+          <div class="stat-content">
+            <div class="stat-label">Детей</div>
+            <div class="stat-value" id="stat-total-children">-</div>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="stat-icon">💳</div>
+          <div class="stat-content">
+            <div class="stat-label">Активных подписок</div>
+            <div class="stat-value" id="stat-active-subscriptions">-</div>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="stat-icon">📋</div>
+          <div class="stat-content">
+            <div class="stat-label">Всего подписок</div>
+            <div class="stat-value" id="stat-total-subscriptions">-</div>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="stat-icon">💰</div>
+          <div class="stat-content">
+            <div class="stat-label">Запросов на возврат</div>
+            <div class="stat-value" id="stat-refund-requests">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Последние пользователи -->
+      <div class="admin-section">
+        <h3>👥 Последние пользователи</h3>
+        <div class="admin-table-container">
+          <table class="admin-table" id="recent-users-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Роль</th>
+                <th>Детей</th>
+                <th>Подписок</th>
+                <th>Дата регистрации</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody id="recent-users-tbody">
+              <tr><td colspan="6" class="loading">Загрузка...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Последние подписки -->
+      <div class="admin-section">
+        <h3>💳 Последние подписки</h3>
+        <div class="admin-table-container">
+          <table class="admin-table" id="recent-subscriptions-table">
+            <thead>
+              <tr>
+                <th>Пользователь</th>
+                <th>Начало</th>
+                <th>Окончание</th>
+                <th>Статус</th>
+                <th>Возврат</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody id="recent-subscriptions-tbody">
+              <tr><td colspan="6" class="loading">Загрузка...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Пользователи -->
+    <div id="admin-page-users" class="admin-page">
+      <div class="admin-page-header">
+        <h2>👥 Пользователи</h2>
+        <div class="admin-filters">
+          <select id="users-role-filter" onchange="loadUsers()">
+            <option value="">Все роли</option>
+            <option value="parent">Родители</option>
+            <option value="child">Дети</option>
+            <option value="admin">Администраторы</option>
+          </select>
+          <input type="text" id="users-search" placeholder="Поиск по email..." onkeyup="debounceSearch(loadUsers, 300)()" />
+        </div>
+      </div>
+      <div class="admin-table-container">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Email</th>
+              <th>Роль</th>
+              <th>Детей</th>
+              <th>Подписок</th>
+              <th>Дата регистрации</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody">
+            <tr><td colspan="7" class="loading">Загрузка...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="admin-pagination">
+        <button onclick="changeUsersPage(-1)">◀ Предыдущая</button>
+        <span id="users-page-info">Страница 1</span>
+        <button onclick="changeUsersPage(1)">Следующая ▶</button>
+      </div>
+    </div>
+
+    <!-- Дети -->
+    <div id="admin-page-children" class="admin-page">
+      <div class="admin-page-header">
+        <h2>👧 Дети</h2>
+        <button class="admin-refresh-btn" onclick="loadChildren()">🔄 Обновить</button>
+      </div>
+      <div class="admin-table-container">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Имя</th>
+              <th>Родитель</th>
+              <th>Пол</th>
+              <th>Задач</th>
+              <th>Звёзд</th>
+              <th>Дата создания</th>
+            </tr>
+          </thead>
+          <tbody id="children-tbody">
+            <tr><td colspan="7" class="loading">Загрузка...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="admin-pagination">
+        <button onclick="changeChildrenPage(-1)">◀ Предыдущая</button>
+        <span id="children-page-info">Страница 1</span>
+        <button onclick="changeChildrenPage(1)">Следующая ▶</button>
+      </div>
+    </div>
+
+    <!-- Подписки -->
+    <div id="admin-page-subscriptions" class="admin-page">
+      <div class="admin-page-header">
+        <h2>💳 Подписки</h2>
+        <div class="admin-filters">
+          <label>
+            <input type="checkbox" id="subscriptions-active-only" onchange="loadSubscriptions()" />
+            Только активные
+          </label>
+        </div>
+      </div>
+      <div class="admin-table-container">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Пользователь</th>
+              <th>Начало</th>
+              <th>Окончание</th>
+              <th>Статус</th>
+              <th>Возврат</th>
+              <th>Дата создания</th>
+            </tr>
+          </thead>
+          <tbody id="subscriptions-tbody">
+            <tr><td colspan="7" class="loading">Загрузка...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="admin-pagination">
+        <button onclick="changeSubscriptionsPage(-1)">◀ Предыдущая</button>
+        <span id="subscriptions-page-info">Страница 1</span>
+        <button onclick="changeSubscriptionsPage(1)">Следующая ▶</button>
+      </div>
+    </div>
+
+    <!-- Уведомления -->
+    <div id="admin-page-notifications" class="admin-page">
+      <div class="admin-page-header">
+        <h2>🔔 Уведомления</h2>
+        <div class="admin-filters">
+          <select id="notifications-type-filter" onchange="loadNotifications()">
+            <option value="">Все типы</option>
+            <option value="subscription">Подписки</option>
+            <option value="refund">Возвраты</option>
+            <option value="complaint">Жалобы</option>
+            <option value="consent">Согласия</option>
+            <option value="system">Система</option>
+          </select>
+        </div>
+      </div>
+      <div class="admin-table-container">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Пользователь</th>
+              <th>Тип</th>
+              <th>Сообщение</th>
+              <th>Статус</th>
+              <th>Дата</th>
+            </tr>
+          </thead>
+          <tbody id="notifications-tbody">
+            <tr><td colspan="6" class="loading">Загрузка...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="admin-pagination">
+        <button onclick="changeNotificationsPage(-1)">◀ Предыдущая</button>
+        <span id="notifications-page-info">Страница 1</span>
+        <button onclick="changeNotificationsPage(1)">Следующая ▶</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Модальное окно редактирования пользователя -->
+  <div id="edit-user-modal" class="admin-modal">
+    <div class="admin-modal-content">
+      <div class="admin-modal-header">
+        <h3>Редактировать пользователя</h3>
+        <button class="admin-modal-close" onclick="closeEditUserModal()">×</button>
+      </div>
+      <div class="admin-modal-body">
+        <form id="edit-user-form" onsubmit="saveUser(event)">
+          <input type="hidden" id="edit-user-id" />
+          <div class="admin-form-group">
+            <label>Email:</label>
+            <input type="email" id="edit-user-email" required />
+          </div>
+          <div class="admin-form-group">
+            <label>Роль:</label>
+            <select id="edit-user-role" required>
+              <option value="parent">Родитель</option>
+              <option value="child">Ребёнок</option>
+              <option value="admin">Администратор</option>
+            </select>
+          </div>
+          <div class="admin-form-actions">
+            <button type="button" class="admin-btn-secondary" onclick="closeEditUserModal()">Отмена</button>
+            <button type="submit" class="admin-btn-primary">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Сообщения об ошибках -->
+  <div id="admin-error-message" class="admin-error-message" style="display: none;"></div>
+  <div id="admin-success-message" class="admin-success-message" style="display: none;"></div>
+
+  <script src="src/js/admin.js"></script>
+</body>
+</html>
+
