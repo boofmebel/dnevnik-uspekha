@@ -349,6 +349,41 @@ class ApiClient {
   async createComplaint(subject, message, parentConsent) {
     return this.post('/support/complaint', { subject, message, parent_consent: parentConsent });
   }
+
+  // Админ-панель
+  async getAdminStats() {
+    return this.get('/admin/stats');
+  }
+
+  async getAdminUsers(skip = 0, limit = 50, role = null) {
+    let url = `/admin/users?skip=${skip}&limit=${limit}`;
+    if (role) url += `&role=${role}`;
+    return this.get(url);
+  }
+
+  async updateAdminUser(userId, userData) {
+    return this.put(`/admin/users/${userId}`, userData);
+  }
+
+  async deleteAdminUser(userId) {
+    return this.delete(`/admin/users/${userId}`);
+  }
+
+  async getAdminChildren(skip = 0, limit = 50) {
+    return this.get(`/admin/children?skip=${skip}&limit=${limit}`);
+  }
+
+  async getAdminSubscriptions(skip = 0, limit = 50, activeOnly = false) {
+    let url = `/admin/subscriptions?skip=${skip}&limit=${limit}`;
+    if (activeOnly) url += '&active_only=true';
+    return this.get(url);
+  }
+
+  async getAdminNotifications(skip = 0, limit = 50, type = null) {
+    let url = `/admin/notifications?skip=${skip}&limit=${limit}`;
+    if (type) url += `&type=${type}`;
+    return this.get(url);
+  }
 }
 
 // Создаём глобальный экземпляр API клиента
