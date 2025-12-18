@@ -12,6 +12,30 @@
   <script src="src/js/admin.js"></script>
 </head>
 <body class="admin-body">
+  <!-- Модальное окно входа -->
+  <div id="admin-login-modal" class="admin-login-modal" style="display: none;">
+    <div class="admin-login-content">
+      <div class="admin-login-header">
+        <h2>🔐 Вход в админ-панель</h2>
+        <button class="admin-login-close" onclick="closeAdminLogin()">&times;</button>
+      </div>
+      <form id="admin-login-form" onsubmit="handleAdminLogin(event)">
+        <div class="admin-form-group">
+          <label for="admin-login-email">Email:</label>
+          <input type="email" id="admin-login-email" required placeholder="your_email@example.com" />
+        </div>
+        <div class="admin-form-group">
+          <label for="admin-login-password">Пароль:</label>
+          <input type="password" id="admin-login-password" required placeholder="Введите пароль" />
+        </div>
+        <div id="admin-login-error" class="admin-error-message" style="display: none;"></div>
+        <button type="submit" class="admin-btn admin-btn-primary" style="width: 100%; margin-top: 1rem;">
+          Войти
+        </button>
+      </form>
+    </div>
+  </div>
+
   <!-- Индикатор загрузки -->
   <div id="admin-loading" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #1f2937; color: white; display: flex; align-items: center; justify-content: center; z-index: 9999; font-size: 1.5rem;">
     <div style="text-align: center;">

@@ -27,6 +27,69 @@ function debounceSearch(func, wait) {
   };
 }
 
+// Функции для входа
+function showAdminLogin() {
+  const modal = document.getElementById('admin-login-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+function closeAdminLogin() {
+  const modal = document.getElementById('admin-login-modal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+async function handleAdminLogin(event) {
+  event.preventDefault();
+  const email = document.getElementById('admin-login-email').value;
+  const password = document.getElementById('admin-login-password').value;
+  const errorEl = document.getElementById('admin-login-error');
+  
+  if (errorEl) {
+    errorEl.style.display = 'none';
+    errorEl.textContent = '';
+  }
+  
+  try {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+    
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({ detail: 'Ошибка входа' }));
+      throw new Error(data.detail || 'Неверный email или пароль');
+    }
+    
+    const data = await response.json();
+    
+    // Сохраняем токен
+    if (data.access_token) {
+      apiClient.setAccessToken(data.access_token);
+      localStorage.setItem('admin_token', data.access_token);
+    }
+    
+    // Закрываем модальное окно
+    closeAdminLogin();
+    
+    // Перезагружаем страницу для инициализации админки
+    window.location.reload();
+    
+  } catch (error) {
+    if (errorEl) {
+      errorEl.textContent = error.message || 'Ошибка входа. Проверьте email и пароль.';
+      errorEl.style.display = 'block';
+    }
+    console.error('Ошибка входа:', error);
+  }
+}
+
 // Инициализация админки
 document.addEventListener('DOMContentLoaded', async () => {
   // Проверяем, что мы на странице админки
@@ -50,25 +113,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   
   if (!token) {
-    // Если нет токена, показываем инструкцию
+    // Если нет токена, показываем окно входа
     if (loadingEl) {
-      loadingEl.innerHTML = `
-        <div style="text-align: center; padding: 2rem;">
-          <div style="font-size: 3rem; margin-bottom: 1rem;">🔐</div>
-          <h2 style="margin-bottom: 1rem;">Требуется авторизация</h2>
-          <div style="margin-bottom: 2rem; line-height: 1.8;">
-            <p>Для доступа к админ-панели необходимо:</p>
-            <ol style="text-align: left; display: inline-block; margin-top: 1rem;">
-              <li>Войти как администратор на главной странице</li>
-              <li>Или сохранить токен в консоли браузера</li>
-            </ol>
-          </div>
-          <button onclick="window.location.href='/'" style="padding: 0.75rem 2rem; background: #10b981; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer;">
-            Перейти на главную
-          </button>
-        </div>
-      `;
+      loadingEl.style.display = 'none';
     }
+    showAdminLogin();
     return;
   }
 
