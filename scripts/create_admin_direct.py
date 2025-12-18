@@ -7,10 +7,19 @@ import sys
 import asyncio
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Добавляем путь к backend
 backend_path = Path(__file__).parent.parent / "backend"
 sys.path.insert(0, str(backend_path))
+
+# Загружаем .env файл
+env_file = backend_path / ".env"
+if env_file.exists():
+    load_dotenv(env_file)
+    print(f"✅ Загружен .env файл: {env_file}")
+else:
+    print(f"⚠️  .env файл не найден: {env_file}")
 
 try:
     from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
