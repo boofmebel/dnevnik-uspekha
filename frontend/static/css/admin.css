@@ -514,6 +514,91 @@
   animation: slideIn 0.3s ease;
 }
 
+/* Модальное окно входа */
+.admin-login-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.admin-login-content {
+  background: #1f2937;
+  border-radius: 12px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.admin-login-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.admin-login-header h2 {
+  margin: 0;
+  color: #f9fafb;
+  font-size: 1.5rem;
+}
+
+.admin-login-close {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 2rem;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.admin-login-close:hover {
+  background: #374151;
+  color: #f9fafb;
+}
+
+.admin-login-content .admin-form-group {
+  margin-bottom: 1.25rem;
+}
+
+.admin-login-content .admin-form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #d1d5db;
+  font-weight: 500;
+}
+
+.admin-login-content .admin-form-group input {
+  width: 100%;
+  padding: 0.75rem;
+  background: #374151;
+  border: 1px solid #4b5563;
+  border-radius: 6px;
+  color: #f9fafb;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.admin-login-content .admin-form-group input:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
 .admin-error-message {
   background: #fee2e2;
   color: #991b1b;
