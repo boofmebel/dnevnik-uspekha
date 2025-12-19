@@ -178,3 +178,5 @@ SELECT id, email, role FROM users ORDER BY created_at DESC;
 - `docs/HOW_TO_GET_ADMIN_ACCESS.md` - Полная инструкция
 - `docs/ADMIN_TROUBLESHOOTING.md` - Решение проблем
 
+
+

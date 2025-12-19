@@ -76,3 +76,5 @@ echo "4. Проверьте:"
 echo "   SELECT email, role FROM users WHERE email = '$EMAIL';"
 echo ""
 
+
+

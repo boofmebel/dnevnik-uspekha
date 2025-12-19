@@ -75,3 +75,5 @@ echo "   cd /путь/к/проекту && git remote -v"
 echo "4. Проверьте процессы:"
 echo "   ps aux | grep -E 'python|node|nginx'"
 
+
+

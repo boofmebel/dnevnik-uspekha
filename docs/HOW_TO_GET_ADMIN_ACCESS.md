@@ -173,3 +173,5 @@ ssh root@89.104.74.123 "cd /var/www/dnevnik-uspekha && python3 scripts/create_ad
 - `docs/ADMIN_TROUBLESHOOTING.md` - Решение проблем
 - `scripts/create_admin.py` - Скрипт для создания администратора
 
+
+

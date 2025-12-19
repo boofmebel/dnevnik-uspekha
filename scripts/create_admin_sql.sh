@@ -66,3 +66,5 @@ echo "Или выполните через SSH:"
 echo "  ssh root@89.104.74.123 'psql -U postgres -d dnevnik_uspekha -c \"$SQL\"'"
 echo ""
 
+
+

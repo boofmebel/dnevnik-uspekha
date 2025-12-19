@@ -45,3 +45,5 @@ def downgrade():
     op.drop_column('settings', 'stars_per_task')
     op.drop_column('settings', 'max_daily_tasks')
 
+
+

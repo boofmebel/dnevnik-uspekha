@@ -184,12 +184,13 @@ async def generate_child_qr(
             "qr_token_expires_at": qr_token_expires_at,
             "is_active": True
         })
-        pin_set = True
+        pin_set = access.pin_hash is not None
     else:
         # Создаём новый доступ (PIN будет установлен при первом входе по QR)
+        # pin_hash = NULL до первого входа
         access = await access_repo.create({
             "child_id": child_id,
-            "pin_hash": hash_password("0000"),  # Временный PIN, будет заменён при первом входе
+            "pin_hash": None,  # PIN не создаётся до первого входа
             "qr_token": qr_token,
             "qr_token_expires_at": qr_token_expires_at,
             "is_active": True
@@ -197,10 +198,9 @@ async def generate_child_qr(
         pin_set = False
     
     # Генерируем QR-код
+    # Безопасность: QR содержит только токен, child_id определяется на сервере
     qr_data = {
-        "token": qr_token,
-        "child_id": child_id,
-        "name": child.name
+        "token": qr_token
     }
     qr_data_str = json.dumps(qr_data)
     
@@ -268,4 +268,6 @@ async def update_family_rules(
         created_at=rules.created_at,
         updated_at=rules.updated_at
     )
+
+
 

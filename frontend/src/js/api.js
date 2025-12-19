@@ -52,25 +52,6 @@ class ApiClient {
   }
 
   /**
-   * Получение CSRF токена из cookie
-   */
-  getCsrfToken() {
-    const name = 'csrf_token=';
-    const decodedCookie = decodeURIComponent(document.cookie);
-    const ca = decodedCookie.split(';');
-    for (let i = 0; i < ca.length; i++) {
-      let c = ca[i];
-      while (c.charAt(0) === ' ') {
-        c = c.substring(1);
-      }
-      if (c.indexOf(name) === 0) {
-        return c.substring(name.length, c.length);
-      }
-    }
-    return '';
-  }
-
-  /**
    * Базовый метод для выполнения запросов
    */
   async request(endpoint, options = {}) {
@@ -308,53 +289,6 @@ class ApiClient {
     return this.post('/piggy/add', { amount, description });
   }
 
-  // Юридические тексты
-  async getTerms() {
-    return this.get('/legal/terms');
-  }
-
-  async getPrivacy() {
-    return this.get('/legal/privacy');
-  }
-
-  async getSubscriptionTerms() {
-    return this.get('/legal/subscription');
-  }
-
-  // Подписка
-  async getSubscription() {
-    return this.get('/subscription/');
-  }
-
-  async createParentConsent(childId, consentGiven, ipAddress, userAgent) {
-    return this.post('/subscription/consent', {
-      child_id: childId,
-      consent_given: consentGiven,
-      ip_address: ipAddress,
-      user_agent: userAgent
-    });
-  }
-
-  async cancelSubscription(reason) {
-    return this.post('/subscription/cancel', { reason });
-  }
-
-  async requestRefund(reason, parentConsent) {
-    return this.post('/subscription/refund-request', {
-      reason,
-      parent_consent: parentConsent
-    });
-  }
-
-  // Поддержка
-  async createComplaint(subject, message, parentConsent) {
-    return this.post('/support/complaint', {
-      subject,
-      message,
-      parent_consent: parentConsent
-    });
-  }
-
   // Настройки
   async getSettings() {
     return this.get('/settings/');
@@ -425,8 +359,14 @@ class ApiClient {
     return this.get('/subscription/');
   }
 
-  async createParentConsent(childId, consentGiven) {
-    return this.post('/subscription/consent', { child_id: childId, consent_given: consentGiven });
+  async createParentConsent(childId, consentGiven, ipAddress = null, userAgent = null) {
+    const payload = {
+      child_id: childId,
+      consent_given: consentGiven
+    };
+    if (ipAddress) payload.ip_address = ipAddress;
+    if (userAgent) payload.user_agent = userAgent;
+    return this.post('/subscription/consent', payload);
   }
 
   async cancelSubscription(reason) {

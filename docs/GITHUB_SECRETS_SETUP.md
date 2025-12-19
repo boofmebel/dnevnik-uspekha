@@ -106,3 +106,5 @@ sudo -u deploy git config --global --add safe.directory /var/www/dnevnik-uspekha
 3. Выберите ветку `main`
 4. Нажмите **Run workflow**
 
+
+

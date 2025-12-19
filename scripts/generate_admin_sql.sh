@@ -92,3 +92,5 @@ echo "   SELECT email, role FROM users WHERE email = '$EMAIL';"
 echo ""
 echo "=========================================="
 
+
+

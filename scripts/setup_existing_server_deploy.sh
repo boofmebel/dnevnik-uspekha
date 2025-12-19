@@ -99,3 +99,5 @@ echo "2. Проверьте результат: https://github.com/$REPO/actions
 echo "3. После деплоя проверьте сайт: http://$SERVER_HOST"
 echo ""
 
+
+

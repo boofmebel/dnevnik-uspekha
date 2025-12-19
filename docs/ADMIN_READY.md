@@ -71,3 +71,5 @@ psql -U postgres -d dnevnik_uspekha -f /tmp/create_admin_final.sql
 
 Админка полностью готова. Просто откройте `http://89.104.74.123:3000/admin.html` и войдите!
 
+
+

@@ -79,3 +79,5 @@ curl -I http://89.104.74.123:8080   # Дневник успеха (тест)
 ssh root@89.104.74.123 "cp /etc/nginx/sites-available/dnevnik-uspekha.backup.* /etc/nginx/sites-available/dnevnik-uspekha"
 ```
 
+
+

@@ -5,15 +5,21 @@
 async function handleAdminRoute() {
   console.log('🔐 Загрузка админ-панели...');
   
-  // Показываем админку
+  // СНАЧАЛА ПРИНУДИТЕЛЬНО СКРЫВАЕМ АДМИНКУ - показываем только после авторизации!
+  const adminHeader = document.querySelector('.admin-header');
+  const adminNav = document.querySelector('.admin-nav');
+  const adminMain = document.querySelector('.admin-main');
+  if (adminHeader) adminHeader.style.display = 'none';
+  if (adminNav) adminNav.style.display = 'none';
+  if (adminMain) adminMain.style.display = 'none';
+  
+  // Показываем контейнер admin-content (но админка внутри будет скрыта до авторизации)
   const adminContent = document.getElementById('admin-content');
   const mainContent = document.getElementById('app-content');
   const parentContent = document.getElementById('parent-content');
   const childContent = document.getElementById('child-content');
   
-  if (adminContent) {
-    adminContent.style.display = 'block';
-  }
+  // Скрываем другие контейнеры
   if (mainContent) {
     mainContent.style.display = 'none';
   }
@@ -22,6 +28,11 @@ async function handleAdminRoute() {
   }
   if (childContent) {
     childContent.style.display = 'none';
+  }
+  
+  // Показываем admin-content (внутри него initAdminPanel решит, что показывать)
+  if (adminContent) {
+    adminContent.style.display = 'block';
   }
   
   // Инициализируем админку (admin.js должен быть уже загружен в index.html)

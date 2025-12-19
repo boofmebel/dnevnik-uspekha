@@ -14,6 +14,7 @@ from schemas.auth import (
 from services.auth_service import AuthService
 from core.security.jwt import verify_token, create_access_token
 from core.database import get_db
+from core.dependencies import get_current_user
 from core.exceptions import ValidationError
 from core.middleware.rate_limit import limiter
 
@@ -53,12 +54,14 @@ async def login(
     await auth_service.save_refresh_token(user["id"], refresh_token, device_info=device_info)
     
     # Установка refresh token в HttpOnly cookie (согласно rules.md)
-    # secure=True только для HTTPS, для HTTP используем False
+    # secure=True только в production (HTTPS)
+    from core.config import settings
+    secure_cookie = settings.ENVIRONMENT == "production"
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=False,  # False для HTTP, True для HTTPS
+        secure=secure_cookie,
         samesite="lax",  # lax для работы через прокси
         max_age=30 * 24 * 60 * 60  # 30 дней
     )
@@ -100,12 +103,14 @@ async def refresh(
         raise HTTPException(status_code=401, detail="Недействительный или истекший refresh token")
     
     # Установка нового refresh token в HttpOnly cookie
-    # secure=True только для HTTPS, для HTTP используем False
+    # secure=True только в production (HTTPS)
+    from core.config import settings
+    secure_cookie = settings.ENVIRONMENT == "production"
     response.set_cookie(
         key="refresh_token",
         value=new_refresh_token,
         httponly=True,
-        secure=False,  # False для HTTP, True для HTTPS
+        secure=secure_cookie,
         samesite="lax",  # lax для работы через прокси
         max_age=30 * 24 * 60 * 60  # 30 дней
     )
@@ -155,11 +160,14 @@ async def register(
         # Коммит транзакции произойдет автоматически в get_db() после успешного выполнения
         # Если здесь произойдет ошибка, get_db() сделает rollback
         
+        # secure=True только в production (HTTPS)
+        from core.config import settings
+        secure_cookie = settings.ENVIRONMENT == "production"
         response.set_cookie(
             key="refresh_token",
             value=refresh_token,
             httponly=True,
-            secure=False,  # False для HTTP, True для HTTPS
+            secure=secure_cookie,
             samesite="lax",  # lax для работы через прокси
             max_age=30 * 24 * 60 * 60
         )
@@ -208,6 +216,22 @@ async def register(
         )
 
 
+@router.get("/me")
+async def get_current_user_info(
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Получение информации о текущем пользователе
+    Используется для безопасного определения роли без декодирования JWT на клиенте
+    """
+    return {
+        "id": current_user.get("id"),
+        "email": current_user.get("email"),
+        "phone": current_user.get("phone"),
+        "role": current_user.get("role")
+    }
+
+
 @router.post("/logout")
 async def logout(
     response: Response,
@@ -225,13 +249,16 @@ async def logout(
 
 
 @router.post("/child-pin", response_model=LoginResponse)
+@limiter.limit("5/minute")
 async def child_pin_login(
-    request: ChildPinRequest,
+    request: Request,
+    pin_request: ChildPinRequest,
     response: Response,
     db: AsyncSession = Depends(get_db)
 ):
     """
     Вход ребёнка по PIN-коду
+    Rate limit: 5 попыток в минуту
     """
     from repositories.child_access_repository import ChildAccessRepository
     from repositories.child_repository import ChildRepository
@@ -242,7 +269,7 @@ async def child_pin_login(
     child_repo = ChildRepository(db)
     
     # Получаем доступ ребёнка
-    access = await access_repo.get_by_child_id(request.child_id)
+    access = await access_repo.get_by_child_id(pin_request.child_id)
     if not access or not access.is_active:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -256,8 +283,15 @@ async def child_pin_login(
             detail=f"Доступ заблокирован до {access.locked_until.strftime('%H:%M:%S')}"
         )
     
+    # Проверка, что PIN установлен
+    if not access.pin_hash:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="PIN не установлен. Пожалуйста, сначала войдите по QR-коду и установите PIN."
+        )
+    
     # Проверка PIN
-    if not verify_password(request.pin, access.pin_hash):
+    if not verify_password(pin_request.pin, access.pin_hash):
         # Увеличиваем счётчик неудачных попыток
         access.failed_attempts += 1
         
@@ -283,7 +317,7 @@ async def child_pin_login(
     await access_repo.update(access, {"failed_attempts": 0, "locked_until": None})
     
     # Получаем данные ребёнка
-    child = await child_repo.get_by_id(request.child_id)
+    child = await child_repo.get_by_id(pin_request.child_id)
     if not child:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -314,13 +348,16 @@ async def child_pin_login(
 
 
 @router.post("/child-qr", response_model=LoginResponse)
+@limiter.limit("5/minute")
 async def child_qr_login(
-    request: ChildQrRequest,
+    request: Request,
+    qr_request: ChildQrRequest,
     response: Response,
     db: AsyncSession = Depends(get_db)
 ):
     """
     Вход ребёнка по QR-коду
+    Rate limit: 5 попыток в минуту
     """
     from repositories.child_access_repository import ChildAccessRepository
     from repositories.child_repository import ChildRepository
@@ -329,7 +366,7 @@ async def child_qr_login(
     child_repo = ChildRepository(db)
     
     # Получаем доступ по QR-токену
-    access = await access_repo.get_by_qr_token(request.qr_token)
+    access = await access_repo.get_by_qr_token(qr_request.qr_token)
     if not access or not access.is_active:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -344,6 +381,10 @@ async def child_qr_login(
             detail="Ребёнок не найден"
         )
     
+    # Проверяем, установлен ли PIN
+    # Если PIN не установлен, возвращаем флаг, что требуется установка PIN
+    pin_required = not access.pin_hash
+    
     # Создаём токен для ребёнка
     token_data = {
         "sub": str(child.user_id),
@@ -351,6 +392,21 @@ async def child_qr_login(
         "role": "child"
     }
     access_token = create_access_token(token_data)
+    
+    # Если PIN не установлен, возвращаем специальный ответ
+    if pin_required:
+        return LoginResponse(
+            access_token=access_token,
+            token_type="bearer",
+            user={
+                "id": child.id,
+                "email": f"child_{child.id}",
+                "role": "child",
+                "child_id": child.id,
+                "name": child.name,
+                "pin_required": True  # Флаг, что требуется установка PIN
+            }
+        )
     
     return LoginResponse(
         access_token=access_token,
@@ -368,26 +424,26 @@ async def child_qr_login(
 @router.post("/admin-login", response_model=LoginResponse)
 @limiter.limit("5/minute")
 async def admin_login(
+    request: Request,
     login_data: AdminLoginRequest,
-    http_request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db)
 ):
     """
     Вход администратора по телефону
-    Только для телефона 79059510009
+    Проверка по ADMIN_PHONE из переменных окружения или по role == "admin"
     """
     from core.utils.phone_validator import normalize_phone
+    from core.config import settings
     
     # Нормализуем телефон
     normalized_phone = normalize_phone(login_data.phone)
     
-    # Проверяем, что это админский телефон
-    if normalized_phone != "+79059510009":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Доступ запрещён"
-        )
+    # Проверяем админский телефон (если задан в env)
+    admin_phone_check = False
+    if settings.ADMIN_PHONE:
+        admin_phone_normalized = normalize_phone(settings.ADMIN_PHONE)
+        admin_phone_check = normalized_phone == admin_phone_normalized
     
     # Аутентификация
     auth_service = AuthService(db)
@@ -402,8 +458,11 @@ async def admin_login(
             detail="Неверный телефон или пароль"
         )
     
-    # Проверяем, что пользователь - админ
-    if user.get("role") != "admin":
+    # Проверяем права администратора: либо по телефону, либо по роли
+    is_admin_by_phone = admin_phone_check
+    is_admin_by_role = user.get("role") == "admin"
+    
+    if not (is_admin_by_phone or is_admin_by_role):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Доступ разрешён только администраторам"
@@ -414,17 +473,20 @@ async def admin_login(
     refresh_token = auth_service.create_refresh_token(user["id"], user.get("role"))
     
     # Получение информации об устройстве для логирования
-    device_info = f"{http_request.headers.get('user-agent', 'Unknown')} | {http_request.client.host if http_request.client else 'Unknown'}"
+    device_info = f"{request.headers.get('user-agent', 'Unknown')} | {request.client.host if request.client else 'Unknown'}"
     
     # Сохранение refresh token в БД
     await auth_service.save_refresh_token(user["id"], refresh_token, device_info=device_info)
     
     # Установка refresh token в HttpOnly cookie
+    # secure=True только в production (HTTPS)
+    from core.config import settings
+    secure_cookie = settings.ENVIRONMENT == "production"
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=False,
+        secure=secure_cookie,
         samesite="lax",
         max_age=30 * 24 * 60 * 60  # 30 дней
     )

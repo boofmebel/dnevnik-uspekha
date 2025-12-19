@@ -130,3 +130,5 @@ curl -X GET "http://localhost:8000/api/tasks/" \
 - `ALLOWED_ORIGINS` - разрешённые origins для CORS
 - `DEBUG` - режим отладки
 
+
+

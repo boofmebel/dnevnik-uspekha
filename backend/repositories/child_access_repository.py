@@ -63,3 +63,5 @@ class ChildAccessRepository:
         """Генерация случайного PIN (4 цифры)"""
         return f"{secrets.randbelow(10000):04d}"
 
+
+

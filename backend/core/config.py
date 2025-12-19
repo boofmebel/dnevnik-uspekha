@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15  # Согласно rules.md: 5-15 минут (было 60, исправлено)
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     
+    # Администратор
+    ADMIN_PHONE: str = ""  # Номер телефона администратора (из переменных окружения)
+    
+    # Окружение
+    ENVIRONMENT: str = "development"  # development | production
+    
     # CORS (согласно rules.md: не использовать * в проде)
     ALLOWED_ORIGINS: List[str] = [
         "http://localhost:3000",

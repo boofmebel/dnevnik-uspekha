@@ -45,3 +45,5 @@ class FamilyRulesRepository:
         except (json.JSONDecodeError, TypeError):
             return []
 
+
+

@@ -66,3 +66,5 @@ class StarRepository:
         )
         return list(result.scalars().all())
 
+
+

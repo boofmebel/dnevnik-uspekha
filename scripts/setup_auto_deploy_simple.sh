@@ -128,3 +128,5 @@ echo -e "   ${BLUE}https://github.com/$REPO/actions${NC}"
 echo ""
 echo -e "${GREEN}🎉 Автоматический деплой настроен!${NC}"
 
+
+

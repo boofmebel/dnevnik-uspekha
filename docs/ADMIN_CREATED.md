@@ -49,3 +49,5 @@
 2. Проверьте подключение к базе данных
 3. Проверьте логи: `ssh root@89.104.74.123 "tail -50 /var/log/nginx/dnevnik-uspekha-error.log"`
 
+
+

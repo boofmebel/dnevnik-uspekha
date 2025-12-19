@@ -31,6 +31,21 @@ function debounceSearch(func, wait) {
 function showAdminLogin() {
   console.log('🔐 Показываем окно входа...');
   
+  // ВАЖНО: Показываем контейнер admin-content, чтобы форма входа была видна
+  const adminContent = document.getElementById('admin-content');
+  if (adminContent) {
+    adminContent.style.display = 'block';
+    console.log('✅ Контейнер admin-content показан');
+  }
+  
+  // Скрываем админку (header, nav, main)
+  const adminHeader = document.querySelector('.admin-header');
+  const adminNav = document.querySelector('.admin-nav');
+  const adminMain = document.querySelector('.admin-main');
+  if (adminHeader) adminHeader.style.display = 'none';
+  if (adminNav) adminNav.style.display = 'none';
+  if (adminMain) adminMain.style.display = 'none';
+  
   // Показываем матричный фон
   const matrixBg = document.getElementById('matrix-background');
   if (matrixBg) {
@@ -48,6 +63,7 @@ function showAdminLogin() {
   if (modal) {
     modal.style.display = 'flex';
     modal.style.visibility = 'visible';
+    modal.style.zIndex = '10000'; // Убеждаемся, что модалка поверх всего
     console.log('✅ Модальное окно показано');
   } else {
     console.error('❌ Элемент admin-login-modal не найден!');
@@ -192,6 +208,14 @@ async function handleAdminLogin(event) {
 async function initAdminPanel() {
   console.log('🔐 Инициализация админ-панели...');
   
+  // СНАЧАЛА СКРЫВАЕМ АДМИНКУ - показываем только после успешной авторизации
+  const adminHeader = document.querySelector('.admin-header');
+  const adminNav = document.querySelector('.admin-nav');
+  const adminMain = document.querySelector('.admin-main');
+  if (adminHeader) adminHeader.style.display = 'none';
+  if (adminNav) adminNav.style.display = 'none';
+  if (adminMain) adminMain.style.display = 'none';
+  
   // Показываем индикатор загрузки
   const loadingEl = document.getElementById('admin-loading');
   if (loadingEl) {
@@ -209,7 +233,7 @@ async function initAdminPanel() {
       token = retryToken;
       console.log('✅ Токен восстановлен через refresh');
     } else {
-      // Нет токена - показываем форму входа
+      // Нет токена - показываем форму входа и скрываем админку
       if (loadingEl) loadingEl.style.display = 'none';
       showAdminLogin();
       return;
@@ -226,26 +250,35 @@ async function initAdminPanel() {
       // Загружаем данные
       await loadAdminStats();
       
-      // Показываем админку
-      const adminHeader = document.querySelector('.admin-header');
-      const adminNav = document.querySelector('.admin-nav');
-      const adminMain = document.querySelector('.admin-main');
+      // ТОЛЬКО ПОСЛЕ УСПЕШНОЙ ПРОВЕРКИ показываем админку
       if (adminHeader) adminHeader.style.display = 'block';
       if (adminNav) adminNav.style.display = 'block';
       if (adminMain) adminMain.style.display = 'block';
       if (loadingEl) loadingEl.style.display = 'none';
       
-      // Скрываем матричный фон если был показан
+      // Скрываем матричный фон и форму входа
       const matrixBg = document.getElementById('matrix-background');
       if (matrixBg) {
         matrixBg.style.display = 'none';
       }
+      const loginModal = document.getElementById('admin-login-modal');
+      if (loginModal) {
+        loginModal.style.display = 'none';
+      }
     } catch (error) {
       console.error('❌ Ошибка проверки прав или загрузки данных:', error);
+      // При ошибке скрываем админку и показываем форму входа
+      if (adminHeader) adminHeader.style.display = 'none';
+      if (adminNav) adminNav.style.display = 'none';
+      if (adminMain) adminMain.style.display = 'none';
       if (loadingEl) loadingEl.style.display = 'none';
       showAdminLogin();
     }
   } else {
+    // Нет токена - скрываем админку и показываем форму входа
+    if (adminHeader) adminHeader.style.display = 'none';
+    if (adminNav) adminNav.style.display = 'none';
+    if (adminMain) adminMain.style.display = 'none';
     if (loadingEl) loadingEl.style.display = 'none';
     showAdminLogin();
   }

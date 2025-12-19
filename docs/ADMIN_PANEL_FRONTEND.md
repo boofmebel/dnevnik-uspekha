@@ -129,3 +129,5 @@ apiClient.getAdminNotifications(skip, limit, type)
 - ✅ Edge cases обработаны
 - ✅ Адаптивный дизайн
 
+
+

@@ -69,3 +69,5 @@ SET role = 'admin', password_hash = EXCLUDED.password_hash, updated_at = NOW();
 
 Проверьте конфигурацию backend на сервере для получения параметров подключения.
 
+
+

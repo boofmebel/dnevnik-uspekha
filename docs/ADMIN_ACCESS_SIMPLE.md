@@ -114,3 +114,5 @@ SELECT email, role FROM users WHERE role = 'admin';
 - `docs/HOW_TO_GET_ADMIN_ACCESS.md` - Полная инструкция
 - `docs/ADMIN_TROUBLESHOOTING.md` - Решение проблем
 
+
+

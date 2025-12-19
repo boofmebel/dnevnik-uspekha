@@ -113,3 +113,5 @@ psql -U postgres -d dnevnik_uspekha -c "UPDATE users SET role = 'admin' WHERE em
 2. Откройте админку: `http://89.104.74.123:3000/admin.html`
 3. Готово! 🎉
 
+
+

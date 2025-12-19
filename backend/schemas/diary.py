@@ -34,3 +34,5 @@ class DiaryEntryResponse(DiaryEntryBase):
     class Config:
         from_attributes = True
 
+
+

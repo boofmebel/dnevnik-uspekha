@@ -1,6 +1,10 @@
 /**
  * Клиентский роутер для SPA
  * Обрабатывает маршруты: /admin, /parent, /child, /
+ * 
+ * ⚠️ ОГРАНИЧЕНИЕ: Роутер плоский, вложенные маршруты не поддерживаются
+ * Например: /admin/users/123 - не поддерживается
+ * Используйте query параметры: /admin?user=123
  */
 class Router {
   constructor() {
@@ -102,4 +106,6 @@ const router = new Router();
 
 // Экспорт
 window.router = router;
+
+
 

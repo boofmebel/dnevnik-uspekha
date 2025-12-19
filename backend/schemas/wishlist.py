@@ -39,3 +39,5 @@ class WishlistItemResponse(WishlistItemBase):
     class Config:
         from_attributes = True
 
+
+

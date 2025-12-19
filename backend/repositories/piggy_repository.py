@@ -70,3 +70,5 @@ class PiggyRepository:
         )
         return list(result.scalars().all())
 
+
+

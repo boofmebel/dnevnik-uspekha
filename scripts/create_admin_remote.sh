@@ -87,3 +87,5 @@ echo "  psql -U postgres -d dnevnik_uspekha"
 echo "  # Затем вставьте SQL команду выше"
 echo ""
 
+
+

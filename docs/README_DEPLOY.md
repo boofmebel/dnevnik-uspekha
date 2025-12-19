@@ -109,3 +109,5 @@ gh secret list --repo boofmebel/dnevnik-uspekha
 1. Перейдите: https://github.com/boofmebel/dnevnik-uspekha/settings/secrets/actions
 2. Добавьте секреты вручную (см. `docs/GITHUB_SECRETS_SETUP.md`)
 
+
+

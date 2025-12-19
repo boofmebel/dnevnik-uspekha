@@ -22,3 +22,5 @@ class FamilyRulesUpdate(BaseModel):
     """Схема обновления правил семьи"""
     rules: List[str] = Field(..., description="Массив правил семьи")
 
+
+
