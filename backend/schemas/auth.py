@@ -7,16 +7,26 @@ from typing import Optional
 
 
 class LoginRequest(BaseModel):
-    """Запрос на вход"""
-    email: EmailStr
+    """Запрос на вход (по email или телефону)"""
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
     password: str
+    
+    @classmethod
+    def model_validate(cls, obj, *, strict=None, from_attributes=None, context=None):
+        """Валидация: должен быть указан либо email, либо phone"""
+        instance = super().model_validate(obj, strict=strict, from_attributes=from_attributes, context=context)
+        if not instance.email and not instance.phone:
+            raise ValueError("Необходимо указать email или номер телефона")
+        return instance
 
 
 class RegisterRequest(BaseModel):
-    """Запрос на регистрацию"""
-    email: EmailStr
+    """Запрос на регистрацию по номеру телефона"""
+    phone: str = Field(..., description="Номер телефона в формате +7XXXXXXXXXX")
+    name: str = Field(..., min_length=2, description="Имя пользователя (минимум 2 символа)")
     password: str = Field(..., min_length=8, description="Пароль минимум 8 символов")
-    role: str = "parent"  # По умолчанию родитель
+    role: str = Field(default="parent", pattern="^(parent|admin|child)$", description="Роль пользователя")
 
 
 class LoginResponse(BaseModel):
@@ -50,4 +60,10 @@ class ChildAccessResponse(BaseModel):
     pin: str  # PIN-код (показывается только один раз)
     pin_set: bool  # Установлен ли PIN
     expires_at: Optional[str] = None  # Срок действия QR-токена
+
+
+class AdminLoginRequest(BaseModel):
+    """Запрос на вход админа по телефону"""
+    phone: str = Field(..., description="Номер телефона (79059510009)")
+    password: str = Field(..., description="Пароль администратора")
 

@@ -36,7 +36,7 @@ class Notification(Base):
     type = Column(Enum(NotificationType), nullable=False)
     message = Column(Text, nullable=False)
     status = Column(Enum(NotificationStatus), default=NotificationStatus.PENDING, nullable=False)
-    metadata = Column(Text, nullable=True)  # JSON для дополнительных данных
+    meta_data = Column(Text, nullable=True)  # JSON для дополнительных данных
     
     # Связи
     user = relationship("User", back_populates="notifications")

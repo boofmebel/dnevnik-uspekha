@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Информация о проекте - Копировать</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #00ff00;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #1a1a1a;
+            padding: 30px;
+            border: 2px solid #00ff00;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        }
+        h1 {
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            background: #00ff00;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: all 0.3s;
+            font-family: 'Courier New', monospace;
+        }
+        button:hover {
+            background: #00cc00;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+            transform: scale(1.02);
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        #status {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 16px;
+            min-height: 30px;
+        }
+        .info-box {
+            background: #0f0f0f;
+            border: 1px solid #00ff00;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-size: 12px;
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .info-box::-webkit-scrollbar {
+            width: 10px;
+        }
+        .info-box::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+        .info-box::-webkit-scrollbar-thumb {
+            background: #00ff00;
+            border-radius: 5px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #151515;
+            border-left: 3px solid #00ff00;
+        }
+        .section h2 {
+            color: #00ff00;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 ИНФОРМАЦИЯ О ПРОЕКТЕ ДЛЯ НОВОГО АГЕНТА</h1>
+        
+        <button onclick="copyAllInfo()">📋 КОПИРОВАТЬ ВСЮ ИНФОРМАЦИЮ</button>
+        <div id="status"></div>
+        
+        <div class="section">
+            <h2>🎯 Быстрый старт</h2>
+            <div class="info-box" id="quickInfo">
+Сервер: 89.104.74.123
+Админ: 79059510009@mail.ru / Admin123!
+Проблема: 401 Unauthorized в админке
+Файл: backend/core/dependencies.py (get_current_user)
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>📄 Полная информация</h2>
+            <div class="info-box" id="fullInfo">Загрузка...</div>
+        </div>
+    </div>
+
+    <script>
+        // Загружаем полную информацию
+        fetch('PROJECT_INFO.md')
+            .then(response => response.text())
+            .then(text => {
+                document.getElementById('fullInfo').textContent = text;
+            })
+            .catch(err => {
+                document.getElementById('fullInfo').textContent = 'Ошибка загрузки файла. Используйте кнопку копирования.';
+            });
+
+        async function copyAllInfo() {
+            try {
+                // Пробуем загрузить из файла
+                const response = await fetch('PROJECT_INFO.md');
+                let text;
+                
+                if (response.ok) {
+                    text = await response.text();
+                } else {
+                    // Если файл не доступен, используем встроенную информацию
+                    text = document.getElementById('fullInfo').textContent;
+                }
+                
+                await navigator.clipboard.writeText(text);
+                
+                const status = document.getElementById('status');
+                status.textContent = '✅ Скопировано в буфер обмена!';
+                status.style.color = '#00ff00';
+                
+                setTimeout(() => {
+                    status.textContent = '';
+                }, 3000);
+            } catch (err) {
+                // Fallback для старых браузеров
+                const text = document.getElementById('fullInfo').textContent;
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                
+                const status = document.getElementById('status');
+                status.textContent = '✅ Скопировано (fallback метод)';
+                status.style.color = '#00ff00';
+                
+                setTimeout(() => {
+                    status.textContent = '';
+                }, 3000);
+            }
+        }
+    </script>
+</body>
+</html>
+

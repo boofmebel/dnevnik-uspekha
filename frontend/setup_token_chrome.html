@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Установка токена - Админка</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center;
+            max-width: 500px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .token-preview {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Установка токена администратора</h1>
+        <div id="status" class="status">
+            <div class="spinner"></div>
+            <p>Устанавливаю токен...</p>
+        </div>
+        <div id="tokenPreview" class="token-preview" style="display: none;"></div>
+    </div>
+
+    <script>
+        const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwicm9sZSI6ImFkbWluIiwiZXhwIjoxNzY2MTM3NTI4LCJ0eXBlIjoiYWNjZXNzIn0.hD3XHJQ-a2MjIA-LLzk6s4KzgSC4Fdo9JUybWwkwRnM';
+        const ADMIN_URL = 'http://89.104.74.123:3000/admin.html';
+        const API_BASE_URL = 'http://localhost:8000/api';
+
+        const statusEl = document.getElementById('status');
+        const tokenPreviewEl = document.getElementById('tokenPreview');
+
+        function showStatus(message, isSuccess) {
+            statusEl.className = `status ${isSuccess ? 'success' : 'error'}`;
+            statusEl.innerHTML = `<p>${message}</p>`;
+        }
+
+        function showTokenPreview() {
+            tokenPreviewEl.textContent = `Токен: ${TOKEN.substring(0, 50)}...`;
+            tokenPreviewEl.style.display = 'block';
+        }
+
+        async function setupToken() {
+            try {
+                // Устанавливаем токен
+                localStorage.setItem('admin_token', TOKEN);
+                showTokenPreview();
+                showStatus('✅ Токен успешно установлен! Проверяю доступ...', true);
+
+                // Проверяем токен через API
+                try {
+                    const response = await fetch(`${API_BASE_URL}/admin/stats`, {
+                        headers: {
+                            'Authorization': `Bearer ${TOKEN}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        showStatus('✅ Доступ к админке подтвержден! Перенаправление...', true);
+                        setTimeout(() => {
+                            window.location.href = ADMIN_URL;
+                        }, 1500);
+                    } else {
+                        const errorData = await response.json().catch(() => ({ detail: `Ошибка ${response.status}` }));
+                        showStatus(`⚠️ Токен установлен, но проверка не прошла: ${errorData.detail || response.status}. Переход к админке...`, true);
+                        setTimeout(() => {
+                            window.location.href = ADMIN_URL;
+                        }, 2000);
+                    }
+                } catch (apiError) {
+                    console.error('Ошибка проверки токена:', apiError);
+                    showStatus('⚠️ Токен установлен, но сервер недоступен. Переход к админке...', true);
+                    setTimeout(() => {
+                        window.location.href = ADMIN_URL;
+                    }, 2000);
+                }
+
+            } catch (e) {
+                showStatus(`❌ Ошибка установки токена: ${e.message}`, false);
+                console.error('Ошибка localStorage:', e);
+            }
+        }
+
+        // Запускаем установку при загрузке страницы
+        document.addEventListener('DOMContentLoaded', setupToken);
+    </script>
+</body>
+</html>
+

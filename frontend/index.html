@@ -7,13 +7,500 @@
   <title>Дневник успеха - Система ответственности</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="static/css/styles.css?v=8" />
+  <link rel="stylesheet" href="static/css/auth.css?v=3" />
+  <link rel="stylesheet" href="static/css/admin.css?v=4" />
   <script src="src/js/error-handler.js"></script>
   <script src="src/js/utils.js"></script>
   <script src="src/js/data.js"></script>
   <script src="src/js/ui.js"></script>
   <script src="src/js/api.js"></script>
+  <script src="src/js/router.js"></script>
+  <script src="src/js/admin.js"></script>
 </head>
 <body>
+<!-- Контейнеры для разных маршрутов -->
+<div id="admin-content" style="display: none;" class="admin-body">
+  <!-- Матричный фон -->
+  <div id="matrix-background" class="matrix-background" style="display: none;"></div>
+  
+  <!-- Модальное окно входа -->
+  <div id="admin-login-modal" class="admin-login-modal" style="display: none;">
+    <div class="admin-login-content">
+      <div class="admin-login-header">
+        <h2>🔐 Вход в админ-панель</h2>
+        <button class="admin-login-close" onclick="closeAdminLogin()">&times;</button>
+      </div>
+      <form id="admin-login-form" onsubmit="handleAdminLogin(event)">
+        <div class="admin-form-group">
+          <label for="admin-login-phone">Номер телефона:</label>
+          <input type="tel" id="admin-login-phone" required placeholder="79059510009" value="79059510009" />
+        </div>
+        <div class="admin-form-group">
+          <label for="admin-login-password">Пароль:</label>
+          <input type="password" id="admin-login-password" required placeholder="Введите пароль" />
+        </div>
+        <div id="admin-login-error" class="admin-error-message" style="display: none;"></div>
+        <button type="submit" class="admin-btn admin-btn-primary" style="width: 100%; margin-top: 1rem;">
+          Войти
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Индикатор загрузки -->
+  <div id="admin-loading" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; color: #00ff00; display: flex; align-items: center; justify-content: center; z-index: 9999; font-size: 1.5rem; font-family: 'Courier New', monospace; text-shadow: 0 0 10px #00ff00;">
+    <div style="text-align: center;">
+      <div style="font-size: 3rem; margin-bottom: 1rem; text-shadow: 0 0 20px #00ff00;">🔐</div>
+      <div>ЗАГРУЗКА СИСТЕМЫ...</div>
+    </div>
+  </div>
+  
+  <!-- Шапка админки -->
+  <header class="admin-header" style="display: none;">
+    <div class="admin-header-content">
+      <div class="admin-header-left">
+        <h1>🔐 Админ-панель</h1>
+      </div>
+      <div class="admin-header-right">
+        <span id="admin-user-phone" class="admin-user-info"></span>
+        <button class="admin-logout-btn" onclick="adminLogout()">Выход</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Навигация -->
+  <nav class="admin-nav" style="display: none;">
+    <button class="nav-btn active" data-page="dashboard" onclick="showAdminPage('dashboard')">
+      📊 Dashboard
+    </button>
+    <button class="nav-btn" data-page="users" onclick="showAdminPage('users')">
+      👥 Пользователи
+    </button>
+    <button class="nav-btn" data-page="children" onclick="showAdminPage('children')">
+      👧 Дети
+    </button>
+    <button class="nav-btn" data-page="subscriptions" onclick="showAdminPage('subscriptions')">
+      💳 Подписки
+    </button>
+    <button class="nav-btn" data-page="notifications" onclick="showAdminPage('notifications')">
+      🔔 Уведомления
+    </button>
+  </nav>
+
+  <!-- Контент -->
+  <main class="admin-main" style="display: none;">
+    <!-- Dashboard -->
+    <div id="admin-page-dashboard" class="admin-page active">
+      <div class="admin-page-header">
+        <h2>📊 Статистика</h2>
+        <button class="admin-refresh-btn" onclick="loadAdminStats()">🔄 Обновить</button>
+      </div>
+
+      <!-- Карточки статистики -->
+      <div class="admin-stats-grid">
+        <div class="admin-stat-card">
+          <div class="stat-icon">👥</div>
+          <div class="stat-content">
+            <div class="stat-label">Всего пользователей</div>
+            <div class="stat-value" id="stat-total-users">-</div>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="stat-icon">👨‍👩‍👧</div>
+          <div class="stat-content">
+            <div class="stat-label">Родителей</div>
+            <div class="stat-value" id="stat-total-parents">-</div>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="stat-icon">👧</div>
+          <div class="stat-content">
+            <div class="stat-label">Детей</div>
+            <div class="stat-value" id="stat-total-children">-</div>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="stat-icon">💳</div>
+          <div class="stat-content">
+            <div class="stat-label">Активных подписок</div>
+            <div class="stat-value" id="stat-active-subscriptions">-</div>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="stat-icon">📋</div>
+          <div class="stat-content">
+            <div class="stat-label">Всего подписок</div>
+            <div class="stat-value" id="stat-total-subscriptions">-</div>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="stat-icon">💰</div>
+          <div class="stat-content">
+            <div class="stat-label">Запросов на возврат</div>
+            <div class="stat-value" id="stat-refund-requests">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Последние пользователи -->
+      <div class="admin-section">
+        <h3>👥 Последние пользователи</h3>
+        <div class="admin-table-container">
+          <table class="admin-table" id="recent-users-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Имя</th>
+                <th>Телефон</th>
+                <th>Роль</th>
+                <th>Родитель ID</th>
+                <th>Детей</th>
+                <th>Подписок</th>
+                <th>Дата регистрации</th>
+                <th>Дата обновления</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody id="recent-users-tbody">
+              <tr><td colspan="10" class="loading">Загрузка...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Последние подписки -->
+      <div class="admin-section">
+        <h3>💳 Последние подписки</h3>
+        <div class="admin-table-container">
+          <table class="admin-table" id="recent-subscriptions-table">
+            <thead>
+              <tr>
+                <th>Пользователь</th>
+                <th>Начало</th>
+                <th>Окончание</th>
+                <th>Статус</th>
+                <th>Возврат</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody id="recent-subscriptions-tbody">
+              <tr><td colspan="6" class="loading">Загрузка...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Пользователи -->
+    <div id="admin-page-users" class="admin-page">
+      <div class="admin-page-header">
+        <h2>👥 Пользователи</h2>
+        <div class="admin-filters">
+          <select id="users-role-filter" onchange="loadUsers()">
+            <option value="">Все роли</option>
+            <option value="parent">Родители</option>
+            <option value="child">Дети</option>
+            <option value="admin">Администраторы</option>
+          </select>
+          <input type="text" id="users-search" placeholder="Поиск по имени или телефону..." onkeyup="debounceSearch(loadUsers, 300)()" />
+        </div>
+      </div>
+      <div class="admin-table-container">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Имя</th>
+              <th>Телефон</th>
+              <th>Роль</th>
+              <th>Родитель ID</th>
+              <th>Детей</th>
+              <th>Подписок</th>
+              <th>Дата регистрации</th>
+              <th>Дата обновления</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody">
+            <tr><td colspan="10" class="loading">Загрузка...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="admin-pagination">
+        <button onclick="changeUsersPage(-1)">◀ Предыдущая</button>
+        <span id="users-page-info">Страница 1</span>
+        <button onclick="changeUsersPage(1)">Следующая ▶</button>
+      </div>
+    </div>
+
+    <!-- Дети -->
+    <div id="admin-page-children" class="admin-page">
+      <div class="admin-page-header">
+        <h2>👧 Дети</h2>
+        <button class="admin-refresh-btn" onclick="loadChildren()">🔄 Обновить</button>
+      </div>
+      <div class="admin-table-container">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Имя</th>
+              <th>Родитель</th>
+              <th>Пол</th>
+              <th>Задач</th>
+              <th>Звёзд</th>
+              <th>Дата создания</th>
+            </tr>
+          </thead>
+          <tbody id="children-tbody">
+            <tr><td colspan="8" class="loading">Загрузка...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="admin-pagination">
+        <button onclick="changeChildrenPage(-1)">◀ Предыдущая</button>
+        <span id="children-page-info">Страница 1</span>
+        <button onclick="changeChildrenPage(1)">Следующая ▶</button>
+      </div>
+    </div>
+
+    <!-- Подписки -->
+    <div id="admin-page-subscriptions" class="admin-page">
+      <div class="admin-page-header">
+        <h2>💳 Подписки</h2>
+        <div class="admin-filters">
+          <label>
+            <input type="checkbox" id="subscriptions-active-only" onchange="loadSubscriptions()" />
+            Только активные
+          </label>
+        </div>
+      </div>
+      <div class="admin-table-container">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Пользователь</th>
+              <th>Начало</th>
+              <th>Окончание</th>
+              <th>Статус</th>
+              <th>Возврат</th>
+              <th>Дата создания</th>
+            </tr>
+          </thead>
+          <tbody id="subscriptions-tbody">
+            <tr><td colspan="8" class="loading">Загрузка...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="admin-pagination">
+        <button onclick="changeSubscriptionsPage(-1)">◀ Предыдущая</button>
+        <span id="subscriptions-page-info">Страница 1</span>
+        <button onclick="changeSubscriptionsPage(1)">Следующая ▶</button>
+      </div>
+    </div>
+
+    <!-- Уведомления -->
+    <div id="admin-page-notifications" class="admin-page">
+      <div class="admin-page-header">
+        <h2>🔔 Уведомления</h2>
+        <div class="admin-filters">
+          <select id="notifications-type-filter" onchange="loadNotifications()">
+            <option value="">Все типы</option>
+            <option value="subscription">Подписки</option>
+            <option value="refund">Возвраты</option>
+            <option value="complaint">Жалобы</option>
+            <option value="consent">Согласия</option>
+            <option value="system">Система</option>
+          </select>
+        </div>
+      </div>
+      <div class="admin-table-container">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Пользователь</th>
+              <th>Тип</th>
+              <th>Сообщение</th>
+              <th>Статус</th>
+              <th>Дата</th>
+            </tr>
+          </thead>
+          <tbody id="notifications-tbody">
+            <tr><td colspan="6" class="loading">Загрузка...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="admin-pagination">
+        <button onclick="changeNotificationsPage(-1)">◀ Предыдущая</button>
+        <span id="notifications-page-info">Страница 1</span>
+        <button onclick="changeNotificationsPage(1)">Следующая ▶</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Модальное окно редактирования пользователя -->
+  <div id="edit-user-modal" class="admin-modal">
+    <div class="admin-modal-content">
+      <div class="admin-modal-header">
+        <h3>Редактировать пользователя</h3>
+        <button class="admin-modal-close" onclick="closeEditUserModal()">×</button>
+      </div>
+      <div class="admin-modal-body">
+        <form id="edit-user-form" onsubmit="saveUser(event)">
+          <input type="hidden" id="edit-user-id" />
+          <div class="admin-form-group">
+            <label>Имя пользователя:</label>
+            <input type="text" id="edit-user-name" placeholder="Введите имя" />
+          </div>
+          <div class="admin-form-group">
+            <label>Номер телефона:</label>
+            <input type="tel" id="edit-user-phone" placeholder="+7 (999) 123-45-67" />
+          </div>
+          <div class="admin-form-group">
+            <label>Роль:</label>
+            <select id="edit-user-role" required>
+              <option value="parent">Родитель</option>
+              <option value="child">Ребёнок</option>
+              <option value="admin">Администратор</option>
+            </select>
+          </div>
+          <div class="admin-form-group">
+            <label>ID Родителя (для детей):</label>
+            <input type="number" id="edit-user-parent-id" placeholder="Оставьте пустым, если это родитель" min="1" />
+            <small style="color: #888; font-size: 0.85rem; display: block; margin-top: 0.25rem;">Укажите ID родителя, если это ребёнок</small>
+          </div>
+          <div class="admin-form-actions">
+            <button type="button" class="admin-btn-secondary" onclick="closeEditUserModal()">Отмена</button>
+            <button type="submit" class="admin-btn-primary">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Сообщения об ошибках -->
+  <div id="admin-error-message" class="admin-error-message" style="display: none;"></div>
+  <div id="admin-success-message" class="admin-success-message" style="display: none;"></div>
+</div>
+<div id="parent-content" style="display: none;"></div>
+<div id="child-content" style="display: none;"></div>
+<!-- Модальное окно входа/регистрации -->
+<div class="modal auth-modal" id="auth-modal" style="display: flex;">
+  <div class="modal-content auth-modal-content">
+    <div class="auth-header">
+      <h1>🌟 Дневник успеха</h1>
+      <p class="auth-subtitle" id="auth-subtitle">Вход</p>
+    </div>
+    
+    <!-- Форма входа -->
+    <form id="login-form" class="auth-form" style="display: block;">
+      <div class="form-group">
+        <label for="login-phone-input">Номер телефона</label>
+        <div class="phone-input-wrapper">
+          <span class="phone-prefix">+7</span>
+          <input 
+            type="tel" 
+            id="login-phone-input" 
+            placeholder="(999) 123-45-67" 
+            required 
+            maxlength="15"
+            autocomplete="tel"
+          />
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="login-password-input">Пароль</label>
+        <div class="password-input-wrapper">
+          <input 
+            type="password" 
+            id="login-password-input" 
+            placeholder="Введите пароль" 
+            required 
+            autocomplete="current-password"
+          />
+          <button type="button" class="password-toggle" onclick="togglePassword('login-password-input')">
+            👁️
+          </button>
+        </div>
+      </div>
+      
+      <div id="login-error-message" class="error-message" style="display: none;"></div>
+      
+      <button type="submit" class="auth-button primary" id="login-button">
+        Войти
+      </button>
+      
+      <div class="auth-footer">
+        <p>Нет аккаунта? <a href="#" onclick="switchToRegister(); return false;">Зарегистрироваться</a></p>
+      </div>
+    </form>
+    
+    <!-- Форма регистрации -->
+    <form id="register-form-modal" class="auth-form" style="display: none;">
+      <div class="form-group">
+        <label for="register-phone-input">Номер телефона</label>
+        <div class="phone-input-wrapper">
+          <span class="phone-prefix">+7</span>
+          <input 
+            type="tel" 
+            id="register-phone-input" 
+            placeholder="(999) 123-45-67" 
+            required 
+            maxlength="15"
+            autocomplete="tel"
+          />
+        </div>
+        <small class="form-hint">Введите номер телефона в формате +7 (XXX) XXX-XX-XX</small>
+      </div>
+      
+      <div class="form-group">
+        <label for="register-name-input">Имя родителя</label>
+        <input 
+          type="text" 
+          id="register-name-input" 
+          placeholder="Введите ваше имя" 
+          required
+          minlength="2"
+          autocomplete="name"
+        />
+        <small class="form-hint">Как к вам обращаться?</small>
+      </div>
+      
+      <div class="form-group">
+        <label for="register-password-input">Пароль</label>
+        <div class="password-input-wrapper">
+          <input 
+            type="password" 
+            id="register-password-input" 
+            placeholder="Минимум 8 символов" 
+            required 
+            minlength="8"
+            autocomplete="new-password"
+          />
+          <button type="button" class="password-toggle" onclick="togglePassword('register-password-input')">
+            👁️
+          </button>
+        </div>
+        <small class="form-hint">Пароль должен содержать минимум 8 символов</small>
+      </div>
+      
+      <div id="register-error-message" class="error-message" style="display: none;"></div>
+      
+      <button type="submit" class="auth-button primary" id="register-button-modal">
+        Зарегистрироваться
+      </button>
+      
+      <div class="auth-footer">
+        <p>Уже есть аккаунт? <a href="#" onclick="switchToLogin(); return false;">Войти</a></p>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="app-content" style="display: none;">
 <header>
   <div class="header-content">
     <div class="header-left">
@@ -439,6 +926,7 @@
         </div>
         
         <button class="submit-btn" onclick="saveProfile()">Сохранить</button>
+        <button class="submit-btn" onclick="handleLogout()" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); margin-top: 12px;">Выйти</button>
       </div>
     </div>
   </div>
@@ -498,6 +986,41 @@
   </button>
 </div>
 
+<script src="src/js/auth-user.js"></script>
 <script src="app.js"></script>
+
+<!-- Инициализация роутера -->
+<script>
+// Загружаем обработчики маршрутов
+(async function() {
+  // Загружаем модули маршрутов
+  await Promise.all([
+    loadScript('/src/js/routes/index.js'),
+    loadScript('/src/js/routes/admin.js'),
+    loadScript('/src/js/routes/parent.js'),
+    loadScript('/src/js/routes/child.js')
+  ]);
+  
+  // Регистрируем маршруты
+  router.route('/', handleRootRoute);
+  router.route('/admin', handleAdminRoute);
+  router.route('/parent', handleParentRoute);
+  router.route('/child', handleChildRoute);
+  
+  console.log('✅ Роутер инициализирован');
+})();
+
+// Вспомогательная функция для загрузки скриптов
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.body.appendChild(script);
+  });
+}
+</script>
+</div>
 </body>
 </html>

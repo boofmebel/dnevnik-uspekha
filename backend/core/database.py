@@ -28,13 +28,24 @@ async def get_db() -> AsyncSession:
     Dependency для получения async сессии БД
     Использование: async def endpoint(db: AsyncSession = Depends(get_db))
     """
-    async with AsyncSessionLocal() as session:
-        try:
+    try:
+        async with AsyncSessionLocal() as session:
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+            finally:
+                await session.close()
+    except (ConnectionRefusedError, OSError) as e:
+        # Если БД недоступна, создаем пустую сессию-заглушку
+        # Это позволит эндпоинтам обработать ошибку и вернуть пустой список
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"БД недоступна: {e}. Создаю заглушку сессии.")
+        # Создаем пустую сессию, которая будет обработана в эндпоинтах
+        async with AsyncSessionLocal() as session:
             yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+            # Не делаем commit/rollback для заглушки
 

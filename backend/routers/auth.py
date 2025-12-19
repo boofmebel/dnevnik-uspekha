@@ -2,51 +2,64 @@
 Роутер для аутентификации
 Согласно rules.md: JWT, refresh token rotation, rate limiting
 """
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status, Request
 from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 from schemas.auth import (
     LoginRequest, LoginResponse, RefreshRequest,
-    RegisterRequest, ChildPinRequest, ChildQrRequest, ChildAccessResponse
+    RegisterRequest, ChildPinRequest, ChildQrRequest, ChildAccessResponse,
+    AdminLoginRequest
 )
 from services.auth_service import AuthService
 from core.security.jwt import verify_token, create_access_token
 from core.database import get_db
 from core.exceptions import ValidationError
+from core.middleware.rate_limit import limiter
 
 router = APIRouter()
 security = HTTPBearer()
 
 
 @router.post("/login", response_model=LoginResponse)
+@limiter.limit("5/minute")
 async def login(
     request: LoginRequest,
+    http_request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db)
 ):
     """
     Вход в систему
-    Согласно rules.md: rate limiting на login endpoint
+    Согласно rules.md: rate limiting на login endpoint (5 попыток в минуту)
     """
     auth_service = AuthService(db)
-    user = await auth_service.authenticate(request.email, request.password)
+    user = await auth_service.authenticate(
+        email=request.email,
+        phone=request.phone,
+        password=request.password
+    )
     if not user:
-        raise HTTPException(status_code=401, detail="Неверный email или пароль")
+        raise HTTPException(status_code=401, detail="Неверный email/телефон или пароль")
     
-    # Создание токенов
-    access_token = auth_service.create_access_token(user.id)
-    refresh_token = auth_service.create_refresh_token(user.id)
+    # Создание токенов с ролью пользователя
+    access_token = auth_service.create_access_token(user["id"], user.get("role"))
+    refresh_token = auth_service.create_refresh_token(user["id"], user.get("role"))
+    
+    # Получение информации об устройстве для логирования
+    device_info = f"{http_request.headers.get('user-agent', 'Unknown')} | {http_request.client.host if http_request.client else 'Unknown'}"
     
     # Сохранение refresh token в БД (согласно rules.md)
-    await auth_service.save_refresh_token(user.id, refresh_token)
+    await auth_service.save_refresh_token(user["id"], refresh_token, device_info=device_info)
     
     # Установка refresh token в HttpOnly cookie (согласно rules.md)
+    # secure=True только для HTTPS, для HTTP используем False
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=True,  # Только HTTPS
-        samesite="strict",
+        secure=False,  # False для HTTP, True для HTTPS
+        samesite="lax",  # lax для работы через прокси
         max_age=30 * 24 * 60 * 60  # 30 дней
     )
     
@@ -59,6 +72,7 @@ async def login(
 
 @router.post("/refresh")
 async def refresh(
+    request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db)
 ):
@@ -67,58 +81,86 @@ async def refresh(
     Согласно rules.md: rotation + новый access token
     """
     auth_service = AuthService(db)
-    # Получение refresh token из cookie
-    # В реальной реализации нужно получить из request.cookies
-    # Здесь упрощённый пример
+    
+    # Получение refresh token из HttpOnly cookie
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="Refresh token не найден")
+    
+    # Получение информации об устройстве для логирования
+    device_info = f"{request.headers.get('user-agent', 'Unknown')} | {request.client.host if request.client else 'Unknown'}"
     
     # Проверка и ротация токена
-    new_access_token, new_refresh_token = await auth_service.refresh_token_rotation()
+    new_access_token, new_refresh_token = await auth_service.refresh_token_rotation(
+        refresh_token, 
+        device_info=device_info
+    )
     
     if not new_access_token:
-        raise HTTPException(status_code=401, detail="Недействительный refresh token")
+        raise HTTPException(status_code=401, detail="Недействительный или истекший refresh token")
     
-    # Установка нового refresh token
+    # Установка нового refresh token в HttpOnly cookie
+    # secure=True только для HTTPS, для HTTP используем False
     response.set_cookie(
         key="refresh_token",
         value=new_refresh_token,
         httponly=True,
-        secure=True,
-        samesite="strict",
-        max_age=30 * 24 * 60 * 60
+        secure=False,  # False для HTTP, True для HTTPS
+        samesite="lax",  # lax для работы через прокси
+        max_age=30 * 24 * 60 * 60  # 30 дней
     )
     
     return {"access_token": new_access_token, "token_type": "bearer"}
 
 
 @router.post("/register")
+@limiter.limit("3/hour")
 async def register(
     request: RegisterRequest,
+    http_request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db)
 ):
     """
     Регистрация нового пользователя (родителя)
+    
+    Все операции выполняются в одной транзакции:
+    1. Создание пользователя
+    2. Создание токенов
+    3. Сохранение refresh token (если реализовано)
+    
+    При ошибке транзакция откатывается автоматически через get_db()
     """
     auth_service = AuthService(db)
     try:
+        # Регистрация пользователя (создает запись в БД через flush)
         user = await auth_service.register(
-            email=request.email,
+            phone=request.phone,
             password=request.password,
-            role=request.role
+            name=request.name,
+            role=request.role,
+            email=None  # Email больше не используется при регистрации
         )
         
         # Автоматический вход после регистрации
-        access_token = auth_service.create_access_token(user["id"])
-        refresh_token = auth_service.create_refresh_token(user["id"])
+        access_token = auth_service.create_access_token(user["id"], user.get("role"))
+        refresh_token = auth_service.create_refresh_token(user["id"], user.get("role"))
         
-        await auth_service.save_refresh_token(user["id"], refresh_token)
+        # Получение информации об устройстве для логирования
+        device_info = f"{http_request.headers.get('user-agent', 'Unknown')} | {http_request.client.host if http_request.client else 'Unknown'}"
+        
+        # Сохранение refresh token в БД (согласно rules.md)
+        await auth_service.save_refresh_token(user["id"], refresh_token, device_info=device_info)
+        
+        # Коммит транзакции произойдет автоматически в get_db() после успешного выполнения
+        # Если здесь произойдет ошибка, get_db() сделает rollback
         
         response.set_cookie(
             key="refresh_token",
             value=refresh_token,
             httponly=True,
-            secure=True,
-            samesite="strict",
+            secure=False,  # False для HTTP, True для HTTPS
+            samesite="lax",  # lax для работы через прокси
             max_age=30 * 24 * 60 * 60
         )
         
@@ -128,9 +170,41 @@ async def register(
             user=user
         )
     except ValueError as e:
+        # Ошибки валидации (дубликаты, неверный формат и т.д.)
+        # get_db() автоматически сделает rollback
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
+        )
+    except IntegrityError as e:
+        # Дополнительная обработка IntegrityError на уровне роутера
+        # (хотя основная обработка уже в сервисе)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"IntegrityError при регистрации: {e}", exc_info=True)
+        error_str = str(e.orig) if hasattr(e, 'orig') else str(e)
+        if "phone" in error_str.lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Пользователь с таким номером телефона уже существует"
+            )
+        elif "email" in error_str.lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Пользователь с таким email уже существует"
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ошибка создания пользователя. Возможно, пользователь с такими данными уже существует."
+        )
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Ошибка регистрации: {type(e).__name__}: {e}", exc_info=True)
+        # get_db() автоматически сделает rollback
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Внутренняя ошибка сервера: {str(e)}"
         )
 
 
@@ -288,5 +362,76 @@ async def child_qr_login(
             "child_id": child.id,
             "name": child.name
         }
+    )
+
+
+@router.post("/admin-login", response_model=LoginResponse)
+@limiter.limit("5/minute")
+async def admin_login(
+    login_data: AdminLoginRequest,
+    http_request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Вход администратора по телефону
+    Только для телефона 79059510009
+    """
+    from core.utils.phone_validator import normalize_phone
+    
+    # Нормализуем телефон
+    normalized_phone = normalize_phone(login_data.phone)
+    
+    # Проверяем, что это админский телефон
+    if normalized_phone != "+79059510009":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Доступ запрещён"
+        )
+    
+    # Аутентификация
+    auth_service = AuthService(db)
+    user = await auth_service.authenticate(
+        phone=normalized_phone,
+        password=login_data.password
+    )
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Неверный телефон или пароль"
+        )
+    
+    # Проверяем, что пользователь - админ
+    if user.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Доступ разрешён только администраторам"
+        )
+    
+    # Создание токенов
+    access_token = auth_service.create_access_token(user["id"], user.get("role"))
+    refresh_token = auth_service.create_refresh_token(user["id"], user.get("role"))
+    
+    # Получение информации об устройстве для логирования
+    device_info = f"{http_request.headers.get('user-agent', 'Unknown')} | {http_request.client.host if http_request.client else 'Unknown'}"
+    
+    # Сохранение refresh token в БД
+    await auth_service.save_refresh_token(user["id"], refresh_token, device_info=device_info)
+    
+    # Установка refresh token в HttpOnly cookie
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=30 * 24 * 60 * 60  # 30 дней
+    )
+    
+    return LoginResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user=user
     )
 

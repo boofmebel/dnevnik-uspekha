@@ -17,6 +17,9 @@ from models.weekly_stats import WeeklyStat
 from models.subscription import Subscription
 from models.parent_consent import ParentConsent
 from models.notification import Notification, NotificationType, NotificationStatus
+from models.refresh_token import RefreshToken
+from models.child_access import ChildAccess
+from models.family_rules import FamilyRules
 
 __all__ = [
     "Base",
@@ -35,9 +38,11 @@ __all__ = [
     "Settings",
     "WeeklyStat",
     "Subscription",
-        "Notification",
-        "NotificationType",
-        "NotificationStatus",
-        "ParentConsent",
-        "ChildAccess",
-    ]
+    "Notification",
+    "NotificationType",
+    "NotificationStatus",
+    "ParentConsent",
+    "ChildAccess",
+    "RefreshToken",
+    "FamilyRules",
+]

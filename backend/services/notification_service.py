@@ -35,7 +35,7 @@ class NotificationService:
             "message": message,
             "subscription_id": subscription_id,
             "status": NotificationStatus.PENDING,
-            "metadata": json.dumps(metadata) if metadata else None
+            "meta_data": json.dumps(metadata) if metadata else None
         }
         
         notification = await self.notification_repo.create(notification_data)

@@ -23,9 +23,13 @@ python-dotenv==1.0.0
 # Логирование (согласно rules.md: JSON логи)
 python-json-logger==2.0.7
 
-# Rate limiting (опционально)
+# Rate limiting
 slowapi==0.1.9
+redis==5.0.1  # Для rate limiting в продакшене
 
 # QR-коды
 qrcode[pil]==7.4.2
+
+# Тестирование
+requests==2.31.0
 

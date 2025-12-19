@@ -16,7 +16,7 @@ class NotificationResponse(BaseModel):
     type: NotificationType
     message: str
     status: NotificationStatus
-    metadata: Optional[str] = None
+    meta_data: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     
@@ -37,5 +37,5 @@ class NotificationCreate(BaseModel):
     type: NotificationType
     message: str
     subscription_id: Optional[int] = None
-    metadata: Optional[str] = None
+    meta_data: Optional[str] = None
 

@@ -33,10 +33,62 @@ class ApiClient {
   }
 
   /**
+   * Получение CSRF токена из cookie
+   */
+  getCsrfToken() {
+    const name = 'csrf_token=';
+    const decodedCookie = decodeURIComponent(document.cookie);
+    const ca = decodedCookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === ' ') {
+        c = c.substring(1);
+      }
+      if (c.indexOf(name) === 0) {
+        return c.substring(name.length, c.length);
+      }
+    }
+    return '';
+  }
+
+  /**
+   * Получение CSRF токена из cookie
+   */
+  getCsrfToken() {
+    const name = 'csrf_token=';
+    const decodedCookie = decodeURIComponent(document.cookie);
+    const ca = decodedCookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === ' ') {
+        c = c.substring(1);
+      }
+      if (c.indexOf(name) === 0) {
+        return c.substring(name.length, c.length);
+      }
+    }
+    return '';
+  }
+
+  /**
    * Базовый метод для выполнения запросов
    */
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
+    
+    // ВАЖНО: Проверяем токен ПЕРЕД созданием config
+    // Согласно rules.md: access token хранится только в памяти
+    let token = this.accessToken;
+    if (!token || !token.trim()) {
+      console.warn('⚠️ Токен отсутствует для запроса:', endpoint);
+      // Если токена нет и это не запрос на авторизацию, показываем окно входа
+      if (!endpoint.includes('/auth/login') && !endpoint.includes('/auth/register')) {
+        if (typeof showAuthModal === 'function') {
+          showAuthModal();
+        }
+      }
+    }
+    
     const config = {
       ...options,
       headers: {
@@ -46,15 +98,20 @@ class ApiClient {
     };
 
     // Добавляем access token в заголовок (согласно rules.md)
-    if (this.accessToken) {
-      config.headers['Authorization'] = `Bearer ${this.accessToken}`;
+    if (token && token.trim()) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+      console.log('🔑 Токен добавлен в запрос:', endpoint, 'Длина токена:', token.length);
+    } else {
+      console.error('❌ Токен не найден для запроса:', endpoint);
     }
 
     try {
       const response = await fetch(url, config);
       
       // Обработка 401 - токен истёк, нужно обновить
+      // Согласно rules.md: refresh token в HttpOnly cookie, обновление через /auth/refresh
       if (response.status === 401) {
+        // Пробуем обновить токен через refresh (refresh token в HttpOnly cookie)
         const newToken = await this.refreshToken();
         if (newToken) {
           config.headers['Authorization'] = `Bearer ${newToken}`;
@@ -65,17 +122,52 @@ class ApiClient {
           }
           return await retryResponse.json();
         } else {
-          // Если не удалось обновить токен, перенаправляем на страницу входа
-          throw new Error('Требуется авторизация');
+          // Если не удалось обновить токен, показываем окно входа
+          if (typeof showAuthModal === 'function') {
+            showAuthModal();
+          }
+          throw new Error('Требуется авторизация. Пожалуйста, войдите заново.');
         }
       }
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        // Для ошибок 500/503 (БД недоступна) возвращаем пустой массив вместо ошибки
+        if (response.status === 500 || response.status === 503) {
+          console.warn(`⚠️ Сервер вернул ${response.status}. БД может быть недоступна. Возвращаем пустой массив.`);
+          return [];
+        }
+        
+        // Проверяем Content-Type перед парсингом JSON
+        const contentType = response.headers.get('content-type');
+        let errorData = {};
+        
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            errorData = await response.json();
+          } catch (e) {
+            console.error('Ошибка парсинга JSON ответа:', e);
+            errorData = { detail: `HTTP error! status: ${response.status}` };
+          }
+        } else {
+          // Если ответ не JSON (например, HTML страница ошибки), читаем как текст
+          const text = await response.text();
+          console.error('Сервер вернул не-JSON ответ:', text.substring(0, 200));
+          errorData = { detail: `HTTP error! status: ${response.status}. Сервер вернул не-JSON ответ.` };
+        }
+        
         throw new Error(errorData.detail || errorData.error || `HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      // Проверяем Content-Type перед парсингом JSON ответа
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      } else {
+        // Если ответ не JSON, возвращаем текст
+        const text = await response.text();
+        console.warn('⚠️ Сервер вернул не-JSON ответ для:', endpoint);
+        throw new Error('Сервер вернул не-JSON ответ. Возможно, проблема с проксированием API.');
+      }
     } catch (error) {
       if (window.errorHandler) {
         window.errorHandler.log(

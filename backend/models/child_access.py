@@ -22,7 +22,7 @@ class ChildAccess(Base):
     locked_until = Column(DateTime(timezone=True), nullable=True)  # Блокировка до определённого времени
     
     # Связи
-    child = relationship("Child", back_populates="access", uselist=False)
+    child = relationship("Child", back_populates="child_access", uselist=False)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

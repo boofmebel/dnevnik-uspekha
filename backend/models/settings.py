@@ -16,6 +16,8 @@ class Settings(Base):
     child_id = Column(Integer, ForeignKey("children.id"), nullable=False, unique=True, index=True)
     stars_to_money = Column(Integer, default=15, nullable=False)  # Количество звёзд для обмена на виртуальную валюту
     money_per_stars = Column(Numeric(10, 2), default=200, nullable=False)  # Виртуальная валюта за обмен (для конвертации в подарки по усмотрению родителей)
+    max_daily_tasks = Column(Integer, default=10, nullable=False)  # Максимальное количество дел в день
+    stars_per_task = Column(Integer, default=1, nullable=False)  # Количество звёзд за выполнение одной задачи
     
     # Связи
     child = relationship("Child", back_populates="settings")

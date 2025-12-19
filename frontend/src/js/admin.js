@@ -29,10 +29,73 @@ function debounceSearch(func, wait) {
 
 // Функции для входа
 function showAdminLogin() {
+  console.log('🔐 Показываем окно входа...');
+  
+  // Показываем матричный фон
+  const matrixBg = document.getElementById('matrix-background');
+  if (matrixBg) {
+    matrixBg.style.display = 'block';
+    matrixBg.style.visibility = 'visible';
+    console.log('✅ Матричный фон показан');
+    // Запускаем матричный эффект
+    startMatrixEffect();
+  } else {
+    console.error('❌ Элемент matrix-background не найден!');
+  }
+  
+  // Показываем модальное окно
   const modal = document.getElementById('admin-login-modal');
   if (modal) {
     modal.style.display = 'flex';
+    modal.style.visibility = 'visible';
+    console.log('✅ Модальное окно показано');
+  } else {
+    console.error('❌ Элемент admin-login-modal не найден!');
   }
+  
+  // Скрываем индикатор загрузки
+  const loadingEl = document.getElementById('admin-loading');
+  if (loadingEl) {
+    loadingEl.style.display = 'none';
+  }
+}
+
+// Матричный эффект
+function startMatrixEffect() {
+  const matrixBg = document.getElementById('matrix-background');
+  if (!matrixBg) {
+    console.error('❌ Элемент matrix-background не найден для матричного эффекта');
+    return;
+  }
+  
+  console.log('🎬 Запуск матричного эффекта...');
+  
+  // Очищаем предыдущие колонки
+  matrixBg.innerHTML = '';
+  
+  const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+  const columns = Math.floor(window.innerWidth / 20);
+  
+  console.log(`📊 Создаем ${columns} колонок для матричного эффекта`);
+  
+  for (let i = 0; i < columns; i++) {
+    const column = document.createElement('div');
+    column.className = 'matrix-column';
+    column.style.left = (i * 20) + 'px';
+    column.style.animationDuration = (Math.random() * 3 + 2) + 's';
+    column.style.animationDelay = Math.random() * 2 + 's';
+    
+    // Генерируем случайные символы
+    let text = '';
+    for (let j = 0; j < 50; j++) {
+      text += chars[Math.floor(Math.random() * chars.length)] + '<br>';
+    }
+    column.innerHTML = text;
+    
+    matrixBg.appendChild(column);
+  }
+  
+  console.log('✅ Матричный эффект запущен');
 }
 
 function closeAdminLogin() {
@@ -44,7 +107,7 @@ function closeAdminLogin() {
 
 async function handleAdminLogin(event) {
   event.preventDefault();
-  const email = document.getElementById('admin-login-email').value;
+  const phone = document.getElementById('admin-login-phone').value;
   const password = document.getElementById('admin-login-password').value;
   const errorEl = document.getElementById('admin-login-error');
   
@@ -54,102 +117,296 @@ async function handleAdminLogin(event) {
   }
   
   try {
-    const response = await fetch('/api/auth/login', {
+    const response = await fetch('/api/auth/admin-login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ phone, password }),
     });
     
     if (!response.ok) {
       const data = await response.json().catch(() => ({ detail: 'Ошибка входа' }));
-      throw new Error(data.detail || 'Неверный email или пароль');
+      throw new Error(data.detail || 'Неверный телефон или пароль');
     }
     
     const data = await response.json();
     
     // Сохраняем токен
-    if (data.access_token) {
-      apiClient.setAccessToken(data.access_token);
-      localStorage.setItem('admin_token', data.access_token);
+    console.log('📥 Ответ от сервера:', { 
+      has_token: !!data.access_token, 
+      token_preview: data.access_token ? data.access_token.substring(0, 30) + '...' : 'нет',
+      user: data.user 
+    });
+    
+    if (data.access_token && data.access_token.trim()) {
+      const token = data.access_token.trim();
+      // Согласно rules.md: access token хранится только в памяти
+      apiClient.setAccessToken(token);
+      // localStorage.setItem('admin_token', token); // Удалено: токены не хранятся в localStorage
+      console.log('✅ Токен сохранен в apiClient (память)');
+    } else {
+      console.error('❌ Токен не получен в ответе:', data);
+      throw new Error('Токен не получен от сервера');
     }
+    
+    // Сохраняем информацию о пользователе
+    adminState.currentUser = data.user;
     
     // Закрываем модальное окно
     closeAdminLogin();
     
-    // Перезагружаем страницу для инициализации админки
-    window.location.reload();
+    // Скрываем матричный фон
+    const matrixBg = document.getElementById('matrix-background');
+    if (matrixBg) {
+      matrixBg.style.display = 'none';
+    }
+    
+    // Показываем основной контент админки
+    const adminHeader = document.querySelector('.admin-header');
+    const adminNav = document.querySelector('.admin-nav');
+    const adminMain = document.querySelector('.admin-main');
+    if (adminHeader) adminHeader.style.display = 'block';
+    if (adminNav) adminNav.style.display = 'block';
+    if (adminMain) adminMain.style.display = 'block';
+    
+    // Обновляем информацию о пользователе в шапке
+    const userPhoneEl = document.getElementById('admin-user-phone');
+    if (userPhoneEl && data.user) {
+      userPhoneEl.textContent = data.user.phone || data.user.email || 'Администратор';
+    }
+    
+    // Загружаем данные
+    await loadAdminStats();
     
   } catch (error) {
     if (errorEl) {
-      errorEl.textContent = error.message || 'Ошибка входа. Проверьте email и пароль.';
+      errorEl.textContent = error.message || 'Ошибка входа. Проверьте телефон и пароль.';
       errorEl.style.display = 'block';
     }
     console.error('Ошибка входа:', error);
   }
 }
 
-// Инициализация админки
+// Функция инициализации админки (для использования в роутере)
+async function initAdminPanel() {
+  console.log('🔐 Инициализация админ-панели...');
+  
+  // Показываем индикатор загрузки
+  const loadingEl = document.getElementById('admin-loading');
+  if (loadingEl) {
+    loadingEl.style.display = 'flex';
+  }
+  
+  // Проверяем токен
+  let token = apiClient.getAccessToken();
+  if (!token || !token.trim()) {
+    console.log('❌ Токен отсутствует, пробуем обновить через refresh');
+    // Пробуем обновить через refresh token
+    const retryToken = await apiClient.refreshToken();
+    if (retryToken && retryToken.trim()) {
+      apiClient.setAccessToken(retryToken);
+      token = retryToken;
+      console.log('✅ Токен восстановлен через refresh');
+    } else {
+      // Нет токена - показываем форму входа
+      if (loadingEl) loadingEl.style.display = 'none';
+      showAdminLogin();
+      return;
+    }
+  }
+  
+  if (token && token.trim()) {
+    console.log('✅ Токен найден:', token.substring(0, 30) + '...');
+    // Проверяем права администратора
+    try {
+      await checkAdminAccess();
+      console.log('✅ Права администратора подтверждены');
+      
+      // Загружаем данные
+      await loadAdminStats();
+      
+      // Показываем админку
+      const adminHeader = document.querySelector('.admin-header');
+      const adminNav = document.querySelector('.admin-nav');
+      const adminMain = document.querySelector('.admin-main');
+      if (adminHeader) adminHeader.style.display = 'block';
+      if (adminNav) adminNav.style.display = 'block';
+      if (adminMain) adminMain.style.display = 'block';
+      if (loadingEl) loadingEl.style.display = 'none';
+      
+      // Скрываем матричный фон если был показан
+      const matrixBg = document.getElementById('matrix-background');
+      if (matrixBg) {
+        matrixBg.style.display = 'none';
+      }
+    } catch (error) {
+      console.error('❌ Ошибка проверки прав или загрузки данных:', error);
+      if (loadingEl) loadingEl.style.display = 'none';
+      showAdminLogin();
+    }
+  } else {
+    if (loadingEl) loadingEl.style.display = 'none';
+    showAdminLogin();
+  }
+}
+
+// Экспортируем функцию для использования в роутере
+window.initAdminPanel = initAdminPanel;
+
+// Инициализация админки при загрузке страницы (для прямого доступа к admin.html)
 document.addEventListener('DOMContentLoaded', async () => {
-  // Проверяем, что мы на странице админки
-  if (!document.body.classList.contains('admin-body')) {
-    console.error('Это не страница админки!');
+  // Проверяем, что мы на странице админки (либо через класс, либо через контейнер)
+  const adminContent = document.getElementById('admin-content');
+  const isAdminPage = document.body.classList.contains('admin-body') || adminContent;
+  
+  if (!isAdminPage) {
+    console.log('Это не страница админки, пропускаем инициализацию');
+    return;
+  }
+  
+  // Если есть контейнер admin-content, используем функцию инициализации
+  if (adminContent) {
+    await initAdminPanel();
     return;
   }
 
   // Показываем инструкцию если нет токена
   const loadingEl = document.getElementById('admin-loading');
   
+  // ВАЖНО: Восстанавливаем токен из localStorage ПЕРЕД проверкой
+  // Пробуем получить токен из localStorage (временное решение для админа)
+  console.log('🔍 Проверка localStorage...');
+  // Согласно rules.md: токены не хранятся в localStorage
+  // Проверяем только токен в памяти
+  const savedToken = apiClient.getAccessToken();
+  console.log('📦 Токен в памяти:', savedToken ? savedToken.substring(0, 30) + '...' : 'null');
+  
+  if (savedToken && savedToken.trim()) {
+    console.log('✅ Токен найден в памяти');
+  } else {
+    console.log('❌ Токен не найден в localStorage или пустой');
+    // Проверяем все ключи в localStorage
+    console.log('📋 Все ключи в localStorage:', Object.keys(localStorage));
+  }
+  
   // Проверяем авторизацию
   let token = apiClient.getAccessToken();
-  if (!token) {
-    // Пробуем получить токен из localStorage (временное решение для админа)
-    const savedToken = localStorage.getItem('admin_token');
-    if (savedToken) {
-      apiClient.setAccessToken(savedToken);
-      token = savedToken;
+  if (!token || !token.trim()) {
+    console.log('❌ Токен отсутствует, показываем форму входа');
+    // Пробуем обновить через refresh token
+    const retryToken = await apiClient.refreshToken();
+    if (retryToken && retryToken.trim()) {
+      apiClient.setAccessToken(retryToken);
+      token = retryToken;
+      console.log('✅ Токен восстановлен через refresh');
+    } else {
+      // Нет токена - показываем форму входа
+      showAdminLogin();
+      return;
     }
   }
   
-  if (!token) {
+  if (token && token.trim()) {
+    console.log('✅ Токен найден:', token.substring(0, 30) + '...');
+    // Проверяем, что токен валиден, пытаясь загрузить данные
+    try {
+      await loadAdminStats();
+      // Если успешно - показываем админку
+      const adminHeader = document.querySelector('.admin-header');
+      const adminNav = document.querySelector('.admin-nav');
+      const adminMain = document.querySelector('.admin-main');
+      if (adminHeader) adminHeader.style.display = 'block';
+      if (adminNav) adminNav.style.display = 'block';
+      if (adminMain) adminMain.style.display = 'block';
+      if (loadingEl) loadingEl.style.display = 'none';
+    } catch (error) {
+      console.error('❌ Ошибка загрузки данных, показываем форму входа:', error);
+      showAdminLogin();
+    }
+  } else {
+    showAdminLogin();
+  }
+  
+  if (!token || !token.trim()) {
     // Если нет токена, показываем окно входа
+    console.log('🚪 Нет токена, показываем окно входа');
+    
+    // Скрываем индикатор загрузки
     if (loadingEl) {
       loadingEl.style.display = 'none';
     }
+    
+    // Скрываем основной контент админки
+    const adminHeader = document.querySelector('.admin-header');
+    const adminNav = document.querySelector('.admin-nav');
+    const adminMain = document.querySelector('.admin-main');
+    if (adminHeader) adminHeader.style.display = 'none';
+    if (adminNav) adminNav.style.display = 'none';
+    if (adminMain) adminMain.style.display = 'none';
+    
+    // Показываем окно входа (внутри функции уже показывается матричный фон)
     showAdminLogin();
     return;
   }
-
+  
+  console.log('🔐 Токен найден, проверяем права доступа...');
+  
+  // ВАЖНО: Сначала проверяем права администратора, ПОТОМ показываем админку
   try {
-    // Проверяем права администратора
+    // Проверяем права администратора ПЕРЕД показом админки
     await checkAdminAccess();
+    console.log('✅ Права администратора подтверждены');
+    
+    // Только после успешной проверки показываем админку
+    const matrixBg = document.getElementById('matrix-background');
+    if (matrixBg) {
+      matrixBg.style.display = 'none';
+    }
+    
+    // Показываем основной контент админки
+    const adminHeader = document.querySelector('.admin-header');
+    const adminNav = document.querySelector('.admin-nav');
+    const adminMain = document.querySelector('.admin-main');
+    if (adminHeader) adminHeader.style.display = 'block';
+    if (adminNav) adminNav.style.display = 'block';
+    if (adminMain) adminMain.style.display = 'block';
+    
     // Скрываем индикатор загрузки
     const loadingEl = document.getElementById('admin-loading');
     if (loadingEl) {
       loadingEl.style.display = 'none';
     }
+    
     // Загружаем данные
     await loadAdminStats();
     // Показываем email пользователя
     showAdminUserInfo();
   } catch (error) {
-    console.error('Ошибка доступа к админке:', error);
+    console.error('❌ Ошибка доступа к админке:', error);
     const loadingEl = document.getElementById('admin-loading');
     if (loadingEl) {
-      loadingEl.innerHTML = `
-        <div style="text-align: center;">
-          <div style="font-size: 3rem; margin-bottom: 1rem;">❌</div>
-          <div style="margin-bottom: 1rem;">Ошибка доступа: ${error.message}</div>
-          <div style="font-size: 0.9rem; opacity: 0.8;">Требуются права администратора</div>
-          <div style="margin-top: 2rem; font-size: 0.8rem; opacity: 0.6;">Перенаправление на главную страницу...</div>
-        </div>
-      `;
+      loadingEl.style.display = 'none';
     }
-    showAdminError('Ошибка доступа: ' + error.message + '. Требуются права администратора.');
-    setTimeout(() => {
-      window.location.href = '/';
-    }, 3000);
+    
+    // ВАЖНО: При ЛЮБОЙ ошибке checkAdminAccess скрываем админку и показываем окно входа
+    // Это ошибка авторизации/доступа, поэтому всегда показываем окно входа
+    console.log('🚪 Ошибка доступа, скрываем админку и показываем окно входа');
+    
+    // Скрываем весь контент админки
+    const adminHeader = document.querySelector('.admin-header');
+    const adminNav = document.querySelector('.admin-nav');
+    const adminMain = document.querySelector('.admin-main');
+    if (adminHeader) adminHeader.style.display = 'none';
+    if (adminNav) adminNav.style.display = 'none';
+    if (adminMain) adminMain.style.display = 'none';
+    
+    // Очищаем токен
+    apiClient.setAccessToken(null);
+    
+    // Показываем окно входа
+    showAdminLogin();
+    return;
   }
 });
 
@@ -160,9 +417,29 @@ async function checkAdminAccess() {
     const stats = await apiClient.get('/admin/stats');
     return true;
   } catch (error) {
+    console.error('❌ Ошибка проверки прав администратора:', error);
+    
+    // Если токен не предоставлен или истек - показываем окно входа
+    if (error.message.includes('401') || 
+        error.message.includes('Токен не предоставлен') || 
+        error.message.includes('Недействительный') ||
+        error.message.includes('истекший токен')) {
+      // Скрываем админку и показываем окно входа
+      const adminHeader = document.querySelector('.admin-header');
+      const adminNav = document.querySelector('.admin-nav');
+      const adminMain = document.querySelector('.admin-main');
+      if (adminHeader) adminHeader.style.display = 'none';
+      if (adminNav) adminNav.style.display = 'none';
+      if (adminMain) adminMain.style.display = 'none';
+      
+      showAdminLogin();
+      throw new Error('Требуется авторизация. Пожалуйста, войдите в систему.');
+    }
+    
     if (error.message.includes('403') || error.message.includes('администратора')) {
       throw new Error('Требуются права администратора');
     }
+    
     throw error;
   }
 }
@@ -172,7 +449,8 @@ async function showAdminUserInfo() {
   try {
     // Получаем текущего пользователя через /api/users/me
     const user = await apiClient.get('/users/me');
-    document.getElementById('admin-user-email').textContent = user.email || 'Администратор';
+    const identifier = user.name || user.phone || user.email || 'Администратор';
+    document.getElementById('admin-user-phone').textContent = identifier;
   } catch (error) {
     console.error('Ошибка получения информации о пользователе:', error);
   }
@@ -219,6 +497,9 @@ async function loadAdminStats() {
     
     const stats = await apiClient.getAdminStats();
     
+    console.log('📊 Статистика загружена:', stats);
+    console.log('👥 Последние пользователи:', stats.recent_users);
+    
     // Обновляем карточки статистики
     document.getElementById('stat-total-users').textContent = stats.total_users || 0;
     document.getElementById('stat-total-parents').textContent = stats.total_parents || 0;
@@ -228,10 +509,51 @@ async function loadAdminStats() {
     document.getElementById('stat-refund-requests').textContent = stats.refund_requests || 0;
     
     // Обновляем таблицы
-    renderRecentUsers(stats.recent_users || []);
+    const recentUsers = stats.recent_users || [];
+    console.log(`✅ Отображаем ${recentUsers.length} пользователей в таблице`);
+    renderRecentUsers(recentUsers);
     renderRecentSubscriptions(stats.recent_subscriptions || []);
   } catch (error) {
-    showAdminError('Ошибка загрузки статистики: ' + error.message);
+    const errorMessage = error.message || 'Неизвестная ошибка';
+    
+    // ВАЖНО: Если ошибка авторизации - скрываем админку и показываем окно входа
+    if (errorMessage.includes('401') || 
+        errorMessage.includes('403') || 
+        errorMessage.includes('Требуется авторизация') ||
+        errorMessage.includes('Токен не предоставлен') ||
+        errorMessage.includes('Недействительный') ||
+        errorMessage.includes('истекший токен')) {
+      console.log('🚪 Ошибка авторизации при загрузке статистики, показываем окно входа');
+      // Скрываем админку
+      const adminHeader = document.querySelector('.admin-header');
+      const adminNav = document.querySelector('.admin-nav');
+      const adminMain = document.querySelector('.admin-main');
+      if (adminHeader) adminHeader.style.display = 'none';
+      if (adminNav) adminNav.style.display = 'none';
+      if (adminMain) adminMain.style.display = 'none';
+      // Очищаем токен
+      apiClient.setAccessToken(null);
+      // Показываем окно входа
+      showAdminLogin();
+      return;
+    }
+    
+    // Для ошибок БД просто показываем нули
+    if (errorMessage.includes('500') || errorMessage.includes('503') || errorMessage.includes('недоступн')) {
+      console.warn('⚠️ База данных недоступна. Показываем нулевую статистику.');
+      // Показываем нулевую статистику
+      document.getElementById('total-users').textContent = '0';
+      document.getElementById('total-parents').textContent = '0';
+      document.getElementById('total-children').textContent = '0';
+      document.getElementById('active-subscriptions').textContent = '0';
+      document.getElementById('total-subscriptions').textContent = '0';
+      document.getElementById('refund-requests').textContent = '0';
+      renderRecentUsers([]);
+      renderRecentSubscriptions([]);
+      return;
+    }
+    
+    showAdminError('Ошибка загрузки статистики: ' + errorMessage);
     console.error('Ошибка загрузки статистики:', error);
   }
 }
@@ -240,23 +562,33 @@ async function loadAdminStats() {
 function renderRecentUsers(users) {
   const tbody = document.getElementById('recent-users-tbody');
   if (!users || users.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty">Нет данных</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="empty">Нет данных</td></tr>';
     return;
   }
   
-  tbody.innerHTML = users.map(user => `
+  tbody.innerHTML = users.map(user => {
+    const name = user.name ? escapeHtml(user.name) : '-';
+    const phone = user.phone ? escapeHtml(user.phone) : '-';
+    const parentId = user.parent_id ? user.parent_id : '-';
+    const updatedAt = user.updated_at ? formatDate(user.updated_at) : '-';
+    return `
     <tr>
-      <td>${escapeHtml(user.email)}</td>
+      <td><strong>${user.id}</strong></td>
+      <td><strong>${name}</strong></td>
+      <td>${phone}</td>
       <td><span class="badge badge-${user.role}">${getRoleLabel(user.role)}</span></td>
+      <td>${parentId}</td>
       <td>${user.children_count || 0}</td>
       <td>${user.subscriptions_count || 0}</td>
       <td>${formatDate(user.created_at)}</td>
+      <td>${updatedAt}</td>
       <td>
-        <button class="admin-action-btn" onclick="editUser(${user.id}, '${escapeHtml(user.email)}', '${user.role}')">✏️</button>
-        <button class="admin-action-btn danger" onclick="deleteUser(${user.id}, '${escapeHtml(user.email)}')">🗑️</button>
+        <button class="admin-action-btn" onclick="editUser(${user.id}, ${JSON.stringify(user.name || '')}, ${JSON.stringify(user.phone || '')}, ${JSON.stringify(user.role)}, ${user.parent_id || 'null'})">✏️</button>
+        <button class="admin-action-btn danger" onclick="deleteUser(${user.id}, ${JSON.stringify(user.name || user.phone || 'пользователь')})">🗑️</button>
       </td>
     </tr>
-  `).join('');
+    `;
+  }).join('');
 }
 
 // Рендеринг последних подписок
@@ -293,13 +625,43 @@ async function loadUsers() {
     // Фильтруем по поиску на клиенте (можно перенести на сервер)
     let filteredUsers = users;
     if (search) {
-      filteredUsers = users.filter(u => u.email.toLowerCase().includes(search.toLowerCase()));
+      filteredUsers = users.filter(u => {
+    const nameMatch = u.name && u.name.toLowerCase().includes(search.toLowerCase());
+    const phoneMatch = u.phone && u.phone.toLowerCase().includes(search.toLowerCase());
+    return nameMatch || phoneMatch;
+      });
     }
     
     renderUsers(filteredUsers);
     updatePagination('users', users.length);
   } catch (error) {
-    showAdminError('Ошибка загрузки пользователей: ' + error.message);
+    const errorMessage = error.message || 'Неизвестная ошибка';
+    
+    // Если ошибка авторизации, пробуем восстановить токен
+    if (errorMessage.includes('авторизац') || errorMessage.includes('401') || errorMessage.includes('Требуется')) {
+      // Согласно rules.md: токены не хранятся в localStorage
+      const savedToken = apiClient.getAccessToken();
+      if (savedToken && savedToken.trim()) {
+        console.log('🔄 Токен восстановлен, повторяем запрос...');
+        // Повторяем запрос
+        setTimeout(() => loadUsers(), 500);
+        return;
+      } else {
+        showAdminError('Требуется авторизация. Пожалуйста, войдите заново.');
+        showAdminLogin();
+        return;
+      }
+    }
+    
+    // Для ошибок БД просто показываем пустую таблицу
+    if (errorMessage.includes('500') || errorMessage.includes('503') || errorMessage.includes('недоступн')) {
+      console.warn('⚠️ База данных недоступна. Показываем пустую таблицу.');
+      renderUsers([]);
+      return;
+    }
+    
+    // Для других ошибок показываем сообщение
+    showAdminError('Ошибка загрузки пользователей: ' + errorMessage);
     console.error('Ошибка загрузки пользователей:', error);
   }
 }
@@ -308,24 +670,33 @@ async function loadUsers() {
 function renderUsers(users) {
   const tbody = document.getElementById('users-tbody');
   if (!users || users.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty">Нет данных</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="empty">Нет данных</td></tr>';
     return;
   }
   
-  tbody.innerHTML = users.map(user => `
+  tbody.innerHTML = users.map(user => {
+    const phone = user.phone ? escapeHtml(user.phone) : '-';
+    const email = user.email ? escapeHtml(user.email) : '-';
+    const parentId = user.parent_id ? user.parent_id : '-';
+    const updatedAt = user.updated_at ? formatDate(user.updated_at) : '-';
+    return `
     <tr>
-      <td>${user.id}</td>
-      <td>${escapeHtml(user.email)}</td>
+      <td><strong>${user.id}</strong></td>
+      <td><strong>${phone}</strong></td>
+      <td>${email}</td>
       <td><span class="badge badge-${user.role}">${getRoleLabel(user.role)}</span></td>
+      <td>${parentId}</td>
       <td>${user.children_count || 0}</td>
       <td>${user.subscriptions_count || 0}</td>
       <td>${formatDate(user.created_at)}</td>
+      <td>${updatedAt}</td>
       <td>
-        <button class="admin-action-btn" onclick="editUser(${user.id}, '${escapeHtml(user.email)}', '${user.role}')">✏️</button>
-        <button class="admin-action-btn danger" onclick="deleteUser(${user.id}, '${escapeHtml(user.email)}')">🗑️</button>
+        <button class="admin-action-btn" onclick="editUser(${user.id}, ${JSON.stringify(user.phone || '')}, ${JSON.stringify(user.email || '')}, ${JSON.stringify(user.role)}, ${user.parent_id || 'null'})">✏️</button>
+        <button class="admin-action-btn danger" onclick="deleteUser(${user.id}, ${JSON.stringify(user.phone || user.email || 'пользователь')})">🗑️</button>
       </td>
     </tr>
-  `).join('');
+    `;
+  }).join('');
 }
 
 // Загрузка детей
@@ -339,7 +710,16 @@ async function loadChildren() {
     renderChildren(children);
     updatePagination('children', children.length);
   } catch (error) {
-    showAdminError('Ошибка загрузки детей: ' + error.message);
+    const errorMessage = error.message || 'Неизвестная ошибка';
+    
+    // Для ошибок БД просто показываем пустую таблицу
+    if (errorMessage.includes('500') || errorMessage.includes('503') || errorMessage.includes('недоступн')) {
+      console.warn('⚠️ База данных недоступна. Показываем пустую таблицу.');
+      renderChildren([]);
+      return;
+    }
+    
+    showAdminError('Ошибка загрузки детей: ' + errorMessage);
     console.error('Ошибка загрузки детей:', error);
   }
 }
@@ -378,7 +758,16 @@ async function loadSubscriptions() {
     renderSubscriptions(subscriptions);
     updatePagination('subscriptions', subscriptions.length);
   } catch (error) {
-    showAdminError('Ошибка загрузки подписок: ' + error.message);
+    const errorMessage = error.message || 'Неизвестная ошибка';
+    
+    // Для ошибок БД просто показываем пустую таблицу
+    if (errorMessage.includes('500') || errorMessage.includes('503') || errorMessage.includes('недоступн')) {
+      console.warn('⚠️ База данных недоступна. Показываем пустую таблицу.');
+      renderSubscriptions([]);
+      return;
+    }
+    
+    showAdminError('Ошибка загрузки подписок: ' + errorMessage);
     console.error('Ошибка загрузки подписок:', error);
   }
 }
@@ -417,7 +806,16 @@ async function loadNotifications() {
     renderNotifications(notifications);
     updatePagination('notifications', notifications.length);
   } catch (error) {
-    showAdminError('Ошибка загрузки уведомлений: ' + error.message);
+    const errorMessage = error.message || 'Неизвестная ошибка';
+    
+    // Для ошибок БД просто показываем пустую таблицу
+    if (errorMessage.includes('500') || errorMessage.includes('503') || errorMessage.includes('недоступн')) {
+      console.warn('⚠️ База данных недоступна. Показываем пустую таблицу.');
+      renderNotifications([]);
+      return;
+    }
+    
+    showAdminError('Ошибка загрузки уведомлений: ' + errorMessage);
     console.error('Ошибка загрузки уведомлений:', error);
   }
 }
@@ -443,10 +841,15 @@ function renderNotifications(notifications) {
 }
 
 // Редактирование пользователя
-function editUser(id, email, role) {
+function editUser(id, name, phone, role, parentId) {
   document.getElementById('edit-user-id').value = id;
-  document.getElementById('edit-user-email').value = email;
+  document.getElementById('edit-user-name').value = name || '';
+  document.getElementById('edit-user-phone').value = phone || '';
   document.getElementById('edit-user-role').value = role;
+  const parentIdInput = document.getElementById('edit-user-parent-id');
+  if (parentIdInput) {
+    parentIdInput.value = parentId && parentId !== 'null' ? parentId : '';
+  }
   document.getElementById('edit-user-modal').style.display = 'flex';
 }
 
@@ -460,11 +863,29 @@ async function saveUser(event) {
   event.preventDefault();
   
   const id = document.getElementById('edit-user-id').value;
-  const email = document.getElementById('edit-user-email').value;
+  const name = document.getElementById('edit-user-name').value.trim();
+  const phone = document.getElementById('edit-user-phone').value.trim();
   const role = document.getElementById('edit-user-role').value;
+  const parentIdInput = document.getElementById('edit-user-parent-id');
+  const parentIdValue = parentIdInput ? parentIdInput.value.trim() : '';
+  const parentId = parentIdValue ? parseInt(parentIdValue) : null;
+  
+  const updateData = { role };
+  if (name) updateData.name = name;
+  else updateData.name = null;
+  
+  if (phone) updateData.phone = phone;
+  else updateData.phone = null;
+  
+  if (parentId !== null) {
+    updateData.parent_id = parentId;
+  } else if (role === 'parent') {
+    // Убираем parent_id для родителей
+    updateData.parent_id = null;
+  }
   
   try {
-    await apiClient.updateAdminUser(id, { email, role });
+    await apiClient.updateAdminUser(id, updateData);
     showAdminSuccess('Пользователь обновлён');
     closeEditUserModal();
     loadUsers();
@@ -530,16 +951,40 @@ async function adminLogout() {
   } catch (error) {
     console.error('Ошибка выхода:', error);
   }
-  localStorage.removeItem('admin_token');
+  // Согласно rules.md: токены не хранятся в localStorage
   apiClient.setAccessToken(null);
-  window.location.href = '/';
+  adminState.currentUser = null;
+  
+  // Скрываем админку
+  const adminHeader = document.querySelector('.admin-header');
+  const adminNav = document.querySelector('.admin-nav');
+  const adminMain = document.querySelector('.admin-main');
+  if (adminHeader) adminHeader.style.display = 'none';
+  if (adminNav) adminNav.style.display = 'none';
+  if (adminMain) adminMain.style.display = 'none';
+  
+  // Редиректим на главную или показываем форму входа
+  if (window.router) {
+    window.router.navigate('/');
+  } else {
+    showAdminLogin();
+  }
 }
 
 // Утилиты
 function showLoading(tbodyId) {
   const tbody = document.getElementById(tbodyId);
   if (tbody) {
-    tbody.innerHTML = '<tr><td colspan="10" class="loading">Загрузка...</td></tr>';
+    // Определяем количество колонок в зависимости от таблицы
+    let colspan = 10; // По умолчанию для users и recent-users
+    if (tbodyId.includes('subscriptions')) {
+      colspan = 6; // Для subscriptions
+    } else if (tbodyId.includes('children')) {
+      colspan = 7; // Для children
+    } else if (tbodyId.includes('notifications')) {
+      colspan = 6; // Для notifications
+    }
+    tbody.innerHTML = `<tr><td colspan="${colspan}" class="loading">Загрузка...</td></tr>`;
   }
 }
 

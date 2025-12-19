@@ -24,9 +24,11 @@ class User(Base):
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String, nullable=True)  # Имя пользователя (родителя)
+    email = Column(String, unique=True, index=True, nullable=True)  # Опционально, если регистрация по телефону
+    phone = Column(String, unique=True, index=True, nullable=True)  # Номер телефона для регистрации
     password_hash = Column(String, nullable=False)
-    role = Column(Enum(UserRole), nullable=False)
+    role = Column(String, nullable=False)  # Временно String вместо Enum для совместимости с БД
     parent_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Для детей
     
     # Связи
@@ -35,6 +37,7 @@ class User(Base):
     subscriptions = relationship("Subscription", back_populates="user", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
     parent_consents = relationship("ParentConsent", back_populates="user", cascade="all, delete-orphan")
+    family_rules = relationship("FamilyRules", back_populates="user", uselist=False, cascade="all, delete-orphan")
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

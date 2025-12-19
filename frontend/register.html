@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#10b981" />
+  <title>Регистрация - Дневник успеха</title>
+  <link rel="stylesheet" href="static/css/styles.css?v=8" />
+  <link rel="stylesheet" href="static/css/auth.css?v=3" />
+  <script src="src/js/error-handler.js"></script>
+  <script src="src/js/utils.js"></script>
+  <script src="src/js/api.js"></script>
+</head>
+<body class="auth-body">
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <h1>🌟 Дневник успеха</h1>
+        <p class="auth-subtitle">Регистрация родителя</p>
+      </div>
+      
+      <form id="register-form" class="auth-form">
+        <div class="form-group">
+          <label for="phone-input">Номер телефона</label>
+          <div class="phone-input-wrapper">
+            <span class="phone-prefix">+7</span>
+            <input 
+              type="tel" 
+              id="phone-input" 
+              placeholder="(999) 123-45-67" 
+              required 
+              maxlength="15"
+              autocomplete="tel"
+            />
+          </div>
+          <small class="form-hint">Введите номер телефона в формате +7 (XXX) XXX-XX-XX</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="name-input">Имя родителя</label>
+          <input 
+            type="text" 
+            id="name-input" 
+            placeholder="Введите ваше имя" 
+            required
+            autocomplete="name"
+          />
+          <small class="form-hint">Как к вам обращаться?</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="password-input">Пароль</label>
+          <div class="password-input-wrapper">
+            <input 
+              type="password" 
+              id="password-input" 
+              placeholder="Минимум 8 символов" 
+              required 
+              minlength="8"
+              autocomplete="new-password"
+            />
+            <button type="button" class="password-toggle" onclick="togglePassword('password-input')">
+              👁️
+            </button>
+          </div>
+          <small class="form-hint">Пароль должен содержать минимум 8 символов</small>
+        </div>
+        
+        <div id="error-message" class="error-message" style="display: none;"></div>
+        
+        <button type="submit" class="auth-button primary" id="register-button">
+          Зарегистрироваться
+        </button>
+        
+        <div class="auth-footer">
+          <p>Уже есть аккаунт? <a href="/">Войти</a></p>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <script src="src/js/register.js?v=4"></script>
+</body>
+</html>
+

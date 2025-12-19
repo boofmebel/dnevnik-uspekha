@@ -35,9 +35,9 @@ class Child(Base):
     wishlist_items = relationship("WishlistItem", back_populates="child", cascade="all, delete-orphan")
     settings = relationship("Settings", back_populates="child", uselist=False, cascade="all, delete-orphan")
     weekly_stats = relationship("WeeklyStat", back_populates="child", cascade="all, delete-orphan")
-        parent_consents = relationship("ParentConsent", back_populates="child", cascade="all, delete-orphan")
-        access = relationship("ChildAccess", back_populates="child", uselist=False, cascade="all, delete-orphan")
-        
-        created_at = Column(DateTime(timezone=True), server_default=func.now())
-        updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    parent_consents = relationship("ParentConsent", back_populates="child", cascade="all, delete-orphan")
+    child_access = relationship("ChildAccess", back_populates="child", uselist=False, cascade="all, delete-orphan")
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

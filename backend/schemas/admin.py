@@ -12,8 +12,10 @@ from models.notification import NotificationType, NotificationStatus
 class AdminUserResponse(BaseModel):
     """Схема пользователя для админки"""
     id: int
-    email: str
-    role: UserRole
+    name: Optional[str] = None  # Имя пользователя (родителя)
+    phone: Optional[str] = None  # Номер телефона (основной идентификатор)
+    email: Optional[str] = None  # Email (опциональный, устаревшее)
+    role: str  # Используем строку вместо enum для совместимости
     parent_id: Optional[int] = None
     children_count: int = 0
     subscriptions_count: int = 0
@@ -85,8 +87,11 @@ class AdminStatsResponse(BaseModel):
 
 class AdminUserUpdate(BaseModel):
     """Схема обновления пользователя"""
-    email: Optional[str] = None
+    name: Optional[str] = None  # Имя пользователя
+    phone: Optional[str] = None  # Номер телефона
+    email: Optional[str] = None  # Email (опциональный, устаревшее)
     role: Optional[UserRole] = None
+    parent_id: Optional[int] = None  # ID родителя (для детей)
     is_active: Optional[bool] = None  # Для блокировки пользователей
 
 
