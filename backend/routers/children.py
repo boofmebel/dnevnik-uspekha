@@ -193,10 +193,10 @@ async def generate_child_access(
             if existing_access.qr_token_used_at is None:
                 # Проверяем, что токен не истек по общему сроку
                 if existing_access.qr_token_expires_at and now <= existing_access.qr_token_expires_at:
-                    # Проверяем, что токен в пределах временного окна (1 час)
+                    # Проверяем, что токен в пределах временного окна (2 часа)
                     if existing_access.qr_token_valid_from:
                         time_since_generation = now - existing_access.qr_token_valid_from
-                        if time_since_generation.total_seconds() <= 3600:  # 1 час = 3600 секунд
+                        if time_since_generation.total_seconds() <= 7200:  # 2 часа = 7200 секунд
                             # Используем существующий QR-код
                             should_generate_new = False
                             logger.info(f"Используется существующий QR-код для ребенка {child_id}")
@@ -213,7 +213,7 @@ async def generate_child_access(
             # Генерируем QR-токен
             qr_token = access_repo.generate_qr_token()
             qr_token_expires_at = now + timedelta(days=30)  # Общий срок действия: 30 дней
-            qr_token_valid_from = now  # Время начала действия (для временного окна 1 час)
+            qr_token_valid_from = now  # Время начала действия (для временного окна 2 часа)
             qr_token_used_at = None  # Одноразовое использование: пока не использован
             
             if existing_access:

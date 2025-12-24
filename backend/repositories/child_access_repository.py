@@ -29,7 +29,7 @@ class ChildAccessRepository:
         - Токен должен быть активен
         - Токен не должен быть использован (одноразовое использование)
         - Токен должен быть в пределах общего срока действия
-        - Токен должен быть в пределах временного окна (1 час с момента генерации)
+        - Токен должен быть в пределах временного окна (2 часа с момента генерации)
         """
         result = await self.session.execute(
             select(ChildAccess)
@@ -59,12 +59,12 @@ class ChildAccessRepository:
                 logger.warning(f"QR-токен истек по общему сроку: expires_at={access.qr_token_expires_at}, now={now}")
                 return None
         
-        # Проверка временного окна (1 час с момента генерации)
+        # Проверка временного окна (2 часа с момента генерации)
         if access.qr_token_valid_from:
             time_since_generation = now - access.qr_token_valid_from
             seconds_since = time_since_generation.total_seconds()
             logger.info(f"Время с момента генерации: {seconds_since} секунд ({seconds_since/3600:.2f} часов)")
-            if seconds_since > 3600:  # 1 час = 3600 секунд
+            if seconds_since > 7200:  # 2 часа = 7200 секунд
                 logger.warning(f"QR-токен истек по временному окну: valid_from={access.qr_token_valid_from}, now={now}, seconds={seconds_since}")
                 return None
         
