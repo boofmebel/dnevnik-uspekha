@@ -70,22 +70,29 @@ jobs:
             git reset --hard origin/main
             
             # Активируем виртуальное окружение (если используется)
-            if [ -d "backend/venv" ]; then
+            if [ -d "backend/venv" ] && [ -f "backend/venv/bin/pip" ]; then
               echo "🐍 Виртуальное окружение найдено"
               PIP_CMD="backend/venv/bin/pip"
               PYTHON_CMD="backend/venv/bin/python"
             else
-              echo "⚠️  Виртуальное окружение не найдено, создаём..."
+              echo "⚠️  Виртуальное окружение не найдено или повреждено, создаём заново..."
+              rm -rf backend/venv
               python3 -m venv backend/venv || python3 -m venv --system-site-packages backend/venv
-              PIP_CMD="backend/venv/bin/pip"
-              PYTHON_CMD="backend/venv/bin/python"
+              if [ -f "backend/venv/bin/pip" ]; then
+                PIP_CMD="backend/venv/bin/pip"
+                PYTHON_CMD="backend/venv/bin/python"
+              else
+                echo "⚠️  Не удалось создать venv, используем python3 -m pip"
+                PIP_CMD="python3 -m pip"
+                PYTHON_CMD="python3"
+              fi
             fi
             
             # Устанавливаем зависимости (если нужно)
             if [ -f "backend/requirements.txt" ]; then
               echo "📦 Устанавливаем зависимости..."
               $PIP_CMD install -q --upgrade pip || true
-              $PIP_CMD install -q -r backend/requirements.txt
+              $PIP_CMD install -q -r backend/requirements.txt || $PIP_CMD install -q --break-system-packages -r backend/requirements.txt
             fi
             
             # Применяем миграции к продакшн БД
