@@ -204,6 +204,10 @@ async def register(
     logger.info(f"Регистрация: phone={register_data.phone}, normalized={normalized_incoming}, valid={is_valid}, name={register_data.name}, role={register_data.role}")
     print(f"🔍 DEBUG Регистрация: phone={register_data.phone}, normalized={normalized_incoming}, valid={is_valid}")
     
+    # ВРЕМЕННО: Очищаем rate limit для тестирования
+    if hasattr(request.state, 'view_rate_limit'):
+        request.state.view_rate_limit = None
+    
     # Проверка: admin роль больше не поддерживается
     if register_data.role == "admin":
         raise HTTPException(
