@@ -19,7 +19,6 @@ from datetime import datetime, timedelta
 import qrcode
 import io
 import base64
-import json
 
 router = APIRouter()
 
@@ -198,14 +197,13 @@ async def generate_child_qr(
         pin_set = False
     
     # Генерируем QR-код
-    # Безопасность: QR содержит только токен, child_id определяется на сервере
-    qr_data = {
-        "token": qr_token
-    }
-    qr_data_str = json.dumps(qr_data)
+    # Формат данных: URL для входа ребенка с ограниченным доступом
+    from core.config import settings
+    frontend_url = settings.FRONTEND_URL
+    qr_url = f"{frontend_url}/child?qr_token={qr_token}"
     
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
-    qr.add_data(qr_data_str)
+    qr.add_data(qr_url)
     qr.make(fit=True)
     
     img = qr.make_image(fill_color="black", back_color="white")

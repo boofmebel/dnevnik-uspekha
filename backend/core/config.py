@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     # Redis (для rate limiting и refresh tokens)
     REDIS_URL: str = "redis://localhost:6379/0"
     
+    # Frontend URL для QR-кодов (согласно правилам: ограниченный доступ ребенку)
+    FRONTEND_URL: str = "http://89.104.74.123:3000"  # Продакшн сервер по умолчанию
+    
     # Загрузка файлов (согласно rules.md)
     MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10MB
     UPLOAD_DIR: str = "/var/uploads"  # Вне /static

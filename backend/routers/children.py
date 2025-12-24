@@ -220,9 +220,9 @@ async def generate_child_access(
             })
         
         # Генерируем QR-код (изображение)
-        # Формат данных: URL для входа ребенка
-        # Используем localhost:3000 по умолчанию (можно добавить в настройки позже)
-        frontend_url = "http://localhost:3000"
+        # Формат данных: URL для входа ребенка с ограниченным доступом
+        from core.config import settings
+        frontend_url = settings.FRONTEND_URL
         qr_url = f"{frontend_url}/child?qr_token={qr_token}"
         qr_data_str = qr_url
         
