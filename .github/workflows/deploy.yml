@@ -32,11 +32,27 @@ jobs:
             
             echo "🚀 Начинаем деплой..."
             echo "📋 Проверка переменных окружения..."
+            if [ -z "${{ secrets.SERVER_HOST }}" ]; then
+              echo "❌ ОШИБКА: SERVER_HOST не настроен!"
+              exit 1
+            fi
+            if [ -z "${{ secrets.SERVER_USER }}" ]; then
+              echo "❌ ОШИБКА: SERVER_USER не настроен!"
+              exit 1
+            fi
+            if [ -z "${{ secrets.SERVER_SSH_KEY }}" ]; then
+              echo "❌ ОШИБКА: SERVER_SSH_KEY не настроен!"
+              exit 1
+            fi
+            if [ -z "${{ secrets.SERVER_PATH }}" ]; then
+              echo "❌ ОШИБКА: SERVER_PATH не настроен!"
+              exit 1
+            fi
+            echo "✅ Все Secrets настроены"
             echo "SERVER_HOST: ${{ secrets.SERVER_HOST }}"
             echo "SERVER_USER: ${{ secrets.SERVER_USER }}"
             echo "SERVER_PATH: ${{ secrets.SERVER_PATH }}"
             echo "SERVER_PORT: ${{ secrets.SERVER_PORT || 22 }}"
-            echo "SSH_KEY присутствует: $([ -n '${{ secrets.SERVER_SSH_KEY }}' ] && echo 'да' || echo 'нет')"
             
             # Переходим в директорию проекта
             echo "📁 Переход в директорию: ${{ secrets.SERVER_PATH }}"
