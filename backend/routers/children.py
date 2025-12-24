@@ -187,10 +187,7 @@ async def generate_child_access(
         now = datetime.now(timezone.utc)
         
         # Всегда генерируем новый QR-код при каждом открытии
-        # Генерируем PIN (4 цифры)
-        pin = access_repo.generate_pin()
-        pin_hash = hash_password(pin)
-        
+        # PIN НЕ генерируем - ребенок установит его при первом входе по QR-коду
         # Генерируем QR-токен
         qr_token = access_repo.generate_qr_token()
         qr_token_expires_at = now + timedelta(days=30)  # Общий срок действия: 30 дней
@@ -198,8 +195,8 @@ async def generate_child_access(
         
         if existing_access:
             # Обновляем существующий доступ
+            # НЕ трогаем pin_hash - он устанавливается ребенком при первом входе
             access = await access_repo.update(existing_access, {
-                "pin_hash": pin_hash,
                 "qr_token": qr_token,
                 "qr_token_expires_at": qr_token_expires_at,
                 "qr_token_used_at": qr_token_used_at,  # Сбрасываем при генерации нового токена
@@ -210,9 +207,10 @@ async def generate_child_access(
             logger.info(f"Сгенерирован новый QR-код для ребенка {child_id} (обновлен существующий)")
         else:
             # Создаём новый доступ
+            # pin_hash = None - ребенок установит PIN при первом входе
             access = await access_repo.create({
                 "child_id": child_id,
-                "pin_hash": pin_hash,
+                "pin_hash": None,  # PIN устанавливается ребенком при первом входе
                 "qr_token": qr_token,
                 "qr_token_expires_at": qr_token_expires_at,
                 "qr_token_used_at": qr_token_used_at,
@@ -254,7 +252,7 @@ async def generate_child_access(
             child_id=child_id,
             qr_code=qr_code_base64,
             qr_token=qr_token,
-            pin=pin if pin else "",  # Показываем только при первой генерации
+            pin="",  # PIN не генерируется - ребенок установит его при первом входе
             pin_set=access.pin_hash is not None,
             expires_at=access.qr_token_expires_at.isoformat() if access.qr_token_expires_at else None
         )
