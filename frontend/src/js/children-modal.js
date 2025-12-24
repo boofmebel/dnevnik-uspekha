@@ -1013,12 +1013,8 @@ async function showQRCodeInModal(childId) {
           color: var(--text-primary);
           font-size: 24px;
           font-weight: 700;
-          display: flex;
-          align-items: center;
-          gap: 10px;
         ">
-          <span style="font-size: 28px;">📱</span>
-          <span>QR-код для входа</span>
+          QR-код для входа ребенка
         </h2>
         <button onclick="closeChildrenModal(); setTimeout(() => openChildrenModal(), 100);" style="
           background: var(--surface-hover);
