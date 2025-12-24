@@ -174,7 +174,6 @@ async def refresh(
 
 
 @router.post("/register")
-# @limiter.limit("3/hour")  # Временно отключено для тестирования
 async def register(
     request: Request,  # Для limiter должен быть первым
     register_data: RegisterRequest,
