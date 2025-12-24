@@ -73,12 +73,18 @@ jobs:
             if [ -d "backend/venv" ]; then
               echo "🐍 Активируем виртуальное окружение..."
               source backend/venv/bin/activate
+              PIP_CMD="pip"
+            else
+              echo "⚠️  Виртуальное окружение не найдено, создаём..."
+              python3 -m venv backend/venv
+              source backend/venv/bin/activate
+              PIP_CMD="pip"
             fi
             
             # Устанавливаем зависимости (если нужно)
             if [ -f "backend/requirements.txt" ]; then
               echo "📦 Устанавливаем зависимости..."
-              pip install -q -r backend/requirements.txt
+              $PIP_CMD install -q -r backend/requirements.txt
             fi
             
             # Применяем миграции к продакшн БД
