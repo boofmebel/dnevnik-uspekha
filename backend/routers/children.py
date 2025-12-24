@@ -11,7 +11,7 @@ from repositories.child_access_repository import ChildAccessRepository
 from core.database import get_db
 from core.dependencies import get_current_user
 from core.security.password import hash_password
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import qrcode
 import io
 import base64
@@ -184,7 +184,6 @@ async def generate_child_access(
         # Проверяем, есть ли уже доступ
         existing_access = await access_repo.get_by_child_id(child_id)
         
-        from datetime import timezone
         now = datetime.now(timezone.utc)
         should_generate_new = True
         

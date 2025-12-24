@@ -6,7 +6,7 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from models.child_access import ChildAccess
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import secrets
 
 
@@ -41,7 +41,6 @@ class ChildAccessRepository:
         if not access:
             return None
         
-        from datetime import timezone
         now = datetime.now(timezone.utc)
         
         # Проверка: токен не должен быть использован (одноразовое использование)
