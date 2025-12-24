@@ -31,9 +31,22 @@ jobs:
             set -e  # Остановка при ошибке
             
             echo "🚀 Начинаем деплой..."
+            echo "📋 Проверка переменных окружения..."
+            echo "SERVER_HOST: ${{ secrets.SERVER_HOST }}"
+            echo "SERVER_USER: ${{ secrets.SERVER_USER }}"
+            echo "SERVER_PATH: ${{ secrets.SERVER_PATH }}"
+            echo "SERVER_PORT: ${{ secrets.SERVER_PORT || 22 }}"
+            echo "SSH_KEY присутствует: $([ -n '${{ secrets.SERVER_SSH_KEY }}' ] && echo 'да' || echo 'нет')"
             
             # Переходим в директорию проекта
+            echo "📁 Переход в директорию: ${{ secrets.SERVER_PATH }}"
+            if [ ! -d "${{ secrets.SERVER_PATH }}" ]; then
+              echo "❌ ОШИБКА: Директория ${{ secrets.SERVER_PATH }} не существует!"
+              echo "Создаём директорию..."
+              mkdir -p "${{ secrets.SERVER_PATH }}"
+            fi
             cd ${{ secrets.SERVER_PATH }}
+            echo "✅ Текущая директория: $(pwd)"
             
             # Обновляем код из GitHub
             echo "📥 Получаем последние изменения..."
