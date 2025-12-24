@@ -226,6 +226,10 @@ async def generate_child_access(
         qr_url = f"{frontend_url}/child?qr_token={qr_token}"
         qr_data_str = qr_url
         
+        # Логируем URL для отладки
+        logger.info(f"🔍 Генерация QR-кода: frontend_url={frontend_url}, qr_url={qr_url}")
+        print(f"🔍 DEBUG QR: frontend_url={frontend_url}, qr_url={qr_url}")
+        
         # Создаём QR-код
         try:
             qr = qrcode.QRCode(version=1, box_size=10, border=5)
