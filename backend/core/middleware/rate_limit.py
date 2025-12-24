@@ -28,7 +28,7 @@ def get_storage_uri():
 limiter = Limiter(
     key_func=get_remote_address,
     storage_uri=get_storage_uri(),
-    default_limits=["200 per hour"]  # Общий лимит
+    default_limits=[]  # Отключен по умолчанию, применяется только через декораторы
 )
 
 # Декораторы для rate limiting
