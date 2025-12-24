@@ -184,42 +184,65 @@ async def generate_child_access(
         # Проверяем, есть ли уже доступ
         existing_access = await access_repo.get_by_child_id(child_id)
         
-        # Генерируем PIN (4 цифры)
-        pin = access_repo.generate_pin()
-        pin_hash = hash_password(pin)
-        
-        # Генерируем QR-токен
-        qr_token = access_repo.generate_qr_token()
         now = datetime.now()
-        qr_token_expires_at = now + timedelta(days=30)  # Общий срок действия: 30 дней
-        qr_token_valid_from = now  # Время начала действия (для временного окна 1 час)
-        qr_token_used_at = None  # Одноразовое использование: пока не использован
+        should_generate_new = True
         
-        if existing_access:
-            # Обновляем существующий доступ
-            access = await access_repo.update(existing_access, {
-                "pin_hash": pin_hash,
-                "qr_token": qr_token,
-                "qr_token_expires_at": qr_token_expires_at,
-                "qr_token_valid_from": qr_token_valid_from,
-                "qr_token_used_at": qr_token_used_at,  # Сбрасываем при генерации нового токена
-                "is_active": True,
-                "failed_attempts": 0,
-                "locked_until": None
-            })
-        else:
-            # Создаём новый доступ
-            access = await access_repo.create({
-                "child_id": child_id,
-                "pin_hash": pin_hash,
-                "qr_token": qr_token,
-                "qr_token_expires_at": qr_token_expires_at,
-                "qr_token_valid_from": qr_token_valid_from,
-                "qr_token_used_at": qr_token_used_at,
-                "is_active": True
-            })
+        # Проверяем, можно ли использовать существующий QR-код
+        if existing_access and existing_access.qr_token:
+            # Проверяем, что токен не использован
+            if existing_access.qr_token_used_at is None:
+                # Проверяем, что токен не истек по общему сроку
+                if existing_access.qr_token_expires_at and now <= existing_access.qr_token_expires_at:
+                    # Проверяем, что токен в пределах временного окна (1 час)
+                    if existing_access.qr_token_valid_from:
+                        time_since_generation = now - existing_access.qr_token_valid_from
+                        if time_since_generation.total_seconds() <= 3600:  # 1 час = 3600 секунд
+                            # Используем существующий QR-код
+                            should_generate_new = False
+                            logger.info(f"Используется существующий QR-код для ребенка {child_id}")
+                            access = existing_access
+                            qr_token = existing_access.qr_token
+                            pin = None  # PIN не показываем при повторном показе
         
-        # Генерируем QR-код (изображение)
+        if should_generate_new:
+            # Генерируем новый QR-код
+            # Генерируем PIN (4 цифры)
+            pin = access_repo.generate_pin()
+            pin_hash = hash_password(pin)
+            
+            # Генерируем QR-токен
+            qr_token = access_repo.generate_qr_token()
+            qr_token_expires_at = now + timedelta(days=30)  # Общий срок действия: 30 дней
+            qr_token_valid_from = now  # Время начала действия (для временного окна 1 час)
+            qr_token_used_at = None  # Одноразовое использование: пока не использован
+            
+            if existing_access:
+                # Обновляем существующий доступ
+                access = await access_repo.update(existing_access, {
+                    "pin_hash": pin_hash,
+                    "qr_token": qr_token,
+                    "qr_token_expires_at": qr_token_expires_at,
+                    "qr_token_valid_from": qr_token_valid_from,
+                    "qr_token_used_at": qr_token_used_at,  # Сбрасываем при генерации нового токена
+                    "is_active": True,
+                    "failed_attempts": 0,
+                    "locked_until": None
+                })
+                logger.info(f"Сгенерирован новый QR-код для ребенка {child_id} (обновлен существующий)")
+            else:
+                # Создаём новый доступ
+                access = await access_repo.create({
+                    "child_id": child_id,
+                    "pin_hash": pin_hash,
+                    "qr_token": qr_token,
+                    "qr_token_expires_at": qr_token_expires_at,
+                    "qr_token_valid_from": qr_token_valid_from,
+                    "qr_token_used_at": qr_token_used_at,
+                    "is_active": True
+                })
+                logger.info(f"Сгенерирован новый QR-код для ребенка {child_id} (создан новый)")
+        
+        # Генерируем QR-код (изображение) - всегда генерируем изображение, даже если используем существующий токен
         # Формат данных: URL для входа ребенка с ограниченным доступом
         from core.config import settings
         frontend_url = settings.FRONTEND_URL
@@ -227,7 +250,10 @@ async def generate_child_access(
         qr_data_str = qr_url
         
         # Логируем для отладки
-        logger.info(f"Генерация QR-кода: frontend_url={frontend_url}, qr_url={qr_url}")
+        if should_generate_new:
+            logger.info(f"Генерация нового QR-кода: frontend_url={frontend_url}, qr_url={qr_url}")
+        else:
+            logger.info(f"Использование существующего QR-кода: frontend_url={frontend_url}, qr_url={qr_url}")
         
         # Создаём QR-код
         try:
@@ -253,8 +279,8 @@ async def generate_child_access(
             child_id=child_id,
             qr_code=qr_code_base64,
             qr_token=qr_token,
-            pin=pin,  # Показываем только один раз при генерации
-            pin_set=True,
+            pin=pin if pin else "",  # Показываем только при первой генерации
+            pin_set=access.pin_hash is not None,
             expires_at=qr_token_expires_at.isoformat()
         )
     except HTTPException:
