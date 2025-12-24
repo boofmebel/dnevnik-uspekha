@@ -102,7 +102,14 @@ jobs:
               if [ -z "$DATABASE_URL" ]; then
                 echo "⚠️  DATABASE_URL не установлен, пропускаем миграции"
               else
-                alembic upgrade head || echo "⚠️  Миграции не применены (возможно, БД не настроена)"
+                # Используем Python из venv для запуска alembic
+                if [ -f "../venv/bin/alembic" ]; then
+                  ../venv/bin/alembic upgrade head || echo "⚠️  Миграции не применены (возможно, БД не настроена)"
+                elif [ -f "venv/bin/alembic" ]; then
+                  venv/bin/alembic upgrade head || echo "⚠️  Миграции не применены (возможно, БД не настроена)"
+                else
+                  $PYTHON_CMD -m alembic upgrade head || echo "⚠️  Миграции не применены (возможно, БД не настроена)"
+                fi
               fi
               cd ..
             fi
