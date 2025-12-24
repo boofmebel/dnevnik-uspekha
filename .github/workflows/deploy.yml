@@ -126,6 +126,20 @@ jobs:
             echo "✅ Деплой завершен успешно!"
             echo "🌐 Продакшн окружение доступно на: http://${{ secrets.SERVER_HOST }}:3000"
             
+            # Копируем конфигурацию nginx
+            echo "📋 Настраиваем nginx..."
+            if [ -f "config/nginx.conf" ]; then
+              echo "📝 Копируем конфигурацию nginx..."
+              sudo cp config/nginx.conf /etc/nginx/sites-available/dnevnik-uspekha || true
+              sudo ln -sf /etc/nginx/sites-available/dnevnik-uspekha /etc/nginx/sites-enabled/dnevnik-uspekha || true
+              sudo nginx -t && sudo systemctl reload nginx || echo "⚠️  Nginx конфигурация не обновлена"
+            fi
+            
+            # Устанавливаем права доступа
+            echo "🔐 Устанавливаем права доступа..."
+            sudo chown -R www-data:www-data ${{ secrets.SERVER_PATH }}/frontend || sudo chown -R nginx:nginx ${{ secrets.SERVER_PATH }}/frontend || true
+            sudo chmod -R 755 ${{ secrets.SERVER_PATH }}/frontend || true
+            
             # Перезапуск веб-сервера
             echo "🔄 Перезапускаем сервисы..."
             
