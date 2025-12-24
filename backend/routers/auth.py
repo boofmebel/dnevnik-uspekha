@@ -198,7 +198,10 @@ async def register(
     logger = logging.getLogger(__name__)
     
     # Логируем входящие данные для отладки
-    logger.info(f"Регистрация: phone={register_data.phone}, name={register_data.name}, role={register_data.role}")
+    from core.utils.phone_validator import normalize_phone, validate_phone
+    normalized_incoming = normalize_phone(register_data.phone)
+    is_valid = validate_phone(normalized_incoming)
+    logger.info(f"Регистрация: phone={register_data.phone}, normalized={normalized_incoming}, valid={is_valid}, name={register_data.name}, role={register_data.role}")
     
     # Проверка: admin роль больше не поддерживается
     if register_data.role == "admin":
