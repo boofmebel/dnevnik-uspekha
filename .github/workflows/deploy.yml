@@ -56,9 +56,19 @@ jobs:
             if [ -f "backend/alembic.ini" ]; then
               echo "🗄️  Применяем миграции к продакшн БД (dnevnik_prod)..."
               cd backend
+              # Загружаем переменные окружения из .env файла, если он существует
+              if [ -f ".env" ]; then
+                set -a
+                source .env
+                set +a
+              fi
               # Убеждаемся, что используется продакшн БД
-              export DATABASE_URL=$(echo $DATABASE_URL | sed 's/dnevnik_test/dnevnik_prod/g' | sed 's/dnevnik_uspekha/dnevnik_prod/g')
-              alembic upgrade head || echo "⚠️  Миграции не применены (возможно, БД не настроена)"
+              export DATABASE_URL=$(echo ${DATABASE_URL:-} | sed 's/dnevnik_test/dnevnik_prod/g' | sed 's/dnevnik_uspekha/dnevnik_prod/g')
+              if [ -z "$DATABASE_URL" ]; then
+                echo "⚠️  DATABASE_URL не установлен, пропускаем миграции"
+              else
+                alembic upgrade head || echo "⚠️  Миграции не применены (возможно, БД не настроена)"
+              fi
               cd ..
             fi
             
