@@ -281,7 +281,7 @@ async def generate_child_access(
             qr_token=qr_token,
             pin=pin if pin else "",  # Показываем только при первой генерации
             pin_set=access.pin_hash is not None,
-            expires_at=qr_token_expires_at.isoformat()
+            expires_at=access.qr_token_expires_at.isoformat() if access.qr_token_expires_at else None
         )
     except HTTPException:
         raise
