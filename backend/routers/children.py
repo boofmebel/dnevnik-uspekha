@@ -228,10 +228,7 @@ async def generate_child_access(
         qr_data_str = qr_url
         
         # Логируем для отладки
-        if should_generate_new:
-            logger.info(f"Генерация нового QR-кода: frontend_url={frontend_url}, qr_url={qr_url}")
-        else:
-            logger.info(f"Использование существующего QR-кода: frontend_url={frontend_url}, qr_url={qr_url}")
+        logger.info(f"Генерация нового QR-кода: frontend_url={frontend_url}, qr_url={qr_url}")
         
         # Создаём QR-код
         try:
