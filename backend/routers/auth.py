@@ -202,6 +202,7 @@ async def register(
     normalized_incoming = normalize_phone(register_data.phone)
     is_valid = validate_phone(normalized_incoming)
     logger.info(f"Регистрация: phone={register_data.phone}, normalized={normalized_incoming}, valid={is_valid}, name={register_data.name}, role={register_data.role}")
+    print(f"🔍 DEBUG Регистрация: phone={register_data.phone}, normalized={normalized_incoming}, valid={is_valid}")
     
     # Проверка: admin роль больше не поддерживается
     if register_data.role == "admin":
