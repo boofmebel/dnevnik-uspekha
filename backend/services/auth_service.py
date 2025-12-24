@@ -55,8 +55,10 @@ class AuthService:
             "password_hash": password_hash,
             "role": role
         }
-        if email:
-            user_data["email"] = email.strip() if email else None
+        # Не добавляем email, если он не указан (оставляем NULL в БД)
+        # Это важно, т.к. email имеет unique constraint и NULL значения могут вызывать проблемы
+        if email and email.strip():
+            user_data["email"] = email.strip()
         
         try:
             user = await self.user_repo.create(user_data)
