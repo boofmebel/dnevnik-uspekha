@@ -354,23 +354,14 @@ function showQRModal(access) {
     qrImage.style.display = 'none';
   }
   
+  // PIN не показываем - ребенок установит его при первом входе
   if (qrPin) {
-    if (access.pin) {
-      qrPin.textContent = `PIN: ${access.pin}`;
-      qrPin.style.display = 'block';
-    } else {
-      qrPin.style.display = 'none';
-    }
+    qrPin.style.display = 'none';
   }
   
+  // Срок действия не показываем - QR-код одноразовый
   if (qrExpires) {
-    if (access.expires_at) {
-      const expiresDate = new Date(access.expires_at);
-      qrExpires.textContent = `Действителен до: ${expiresDate.toLocaleDateString('ru-RU')}`;
-      qrExpires.style.display = 'block';
-    } else {
-      qrExpires.style.display = 'none';
-    }
+    qrExpires.style.display = 'none';
   }
   
   // Показываем модальное окно
