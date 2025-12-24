@@ -995,10 +995,6 @@ async function showQRCodeInModal(childId) {
       throw new Error('Модальное окно не найдено');
     }
     
-    // Вычисляем время действия (1 час с момента генерации)
-    const validUntil = new Date();
-    validUntil.setHours(validUntil.getHours() + 1);
-    
     modalContent.innerHTML = `
       <div style="
         display: flex;
@@ -1044,16 +1040,11 @@ async function showQRCodeInModal(childId) {
       ">
         <p style="
           margin: 0;
-          font-size: 14px;
-          color: #64748b;
-          margin-bottom: 8px;
-        ">⏰ Время действия QR-кода:</p>
-        <p style="
-          margin: 0;
           font-size: 16px;
-          font-weight: 600;
           color: #0f172a;
-        ">До ${validUntil.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })} (1 час)</p>
+          font-weight: 500;
+          line-height: 1.5;
+        ">Наведите камеру телефона ребенка и отсканируйте</p>
       </div>
       <button onclick="closeChildrenModal(); setTimeout(() => openChildrenModal(), 100);" class="action-button" style="
         width: 100%;
