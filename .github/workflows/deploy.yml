@@ -69,23 +69,24 @@ jobs:
             git fetch origin
             git reset --hard origin/main
             
-            # Активируем виртуальное окружение (если используется)
-            if [ -d "backend/venv" ] && [ -f "backend/venv/bin/pip" ]; then
-              echo "🐍 Виртуальное окружение найдено"
+            # Создаем/пересоздаем виртуальное окружение
+            echo "🐍 Создаём виртуальное окружение..."
+            rm -rf backend/venv
+            python3 -m venv backend/venv || python3 -m venv --system-site-packages backend/venv || {
+              echo "⚠️  Не удалось создать venv, используем python3 -m pip"
+              PIP_CMD="python3 -m pip"
+              PYTHON_CMD="python3"
+            }
+            
+            # Проверяем, что venv создан и работает
+            if [ -d "backend/venv" ] && [ -x "backend/venv/bin/pip" ]; then
               PIP_CMD="backend/venv/bin/pip"
               PYTHON_CMD="backend/venv/bin/python"
+              echo "✅ Виртуальное окружение создано"
             else
-              echo "⚠️  Виртуальное окружение не найдено или повреждено, создаём заново..."
-              rm -rf backend/venv
-              python3 -m venv backend/venv || python3 -m venv --system-site-packages backend/venv
-              if [ -f "backend/venv/bin/pip" ]; then
-                PIP_CMD="backend/venv/bin/pip"
-                PYTHON_CMD="backend/venv/bin/python"
-              else
-                echo "⚠️  Не удалось создать venv, используем python3 -m pip"
-                PIP_CMD="python3 -m pip"
-                PYTHON_CMD="python3"
-              fi
+              echo "⚠️  venv не работает, используем python3 -m pip"
+              PIP_CMD="python3 -m pip"
+              PYTHON_CMD="python3"
             fi
             
             # Устанавливаем зависимости (если нужно)
