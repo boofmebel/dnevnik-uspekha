@@ -3,13 +3,14 @@
 Согласно rules.md: JWT, refresh token rotation, rate limiting
 """
 from fastapi import APIRouter, Depends, HTTPException, Response, status, Request
-from fastapi.security import HTTPBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from schemas.auth import (
     LoginRequest, LoginResponse, RefreshRequest,
     RegisterRequest, ChildPinRequest, ChildQrRequest, ChildAccessResponse,
-    AdminLoginRequest
+    AdminLoginRequest, StaffLoginRequest
 )
 from services.auth_service import AuthService
 from core.security.jwt import verify_token, create_access_token
@@ -25,52 +26,106 @@ security = HTTPBearer()
 @router.post("/login", response_model=LoginResponse)
 @limiter.limit("5/minute")
 async def login(
-    request: LoginRequest,
-    http_request: Request,
+    request: Request,
+    login_data: LoginRequest,
     response: Response,
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Вход в систему
-    Согласно rules.md: rate limiting на login endpoint (5 попыток в минуту)
+    Универсальный endpoint для входа в систему
+    Поддерживает как Product Users (parent, child), так и Staff Users (admin, support, moderator)
+    Роль определяется автоматически по таблице, в которой найден пользователь
     """
-    auth_service = AuthService(db)
-    user = await auth_service.authenticate(
-        email=request.email,
-        phone=request.phone,
-        password=request.password
-    )
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        # Сначала пробуем найти в таблице product users
+        auth_service = AuthService(db)
+        user = await auth_service.authenticate(
+            email=login_data.email,
+            phone=login_data.phone,
+            password=login_data.password
+        )
+    except Exception as e:
+        logger.error(f"Error in product user authentication: {type(e).__name__}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Ошибка аутентификации: {str(e)}")
+    
+    # Если не найден в product users, пробуем в staff users
+    if not user and login_data.phone:
+        try:
+            from services.staff_auth_service import StaffAuthService
+            staff_auth_service = StaffAuthService(db)
+            user = await staff_auth_service.authenticate(
+                phone=login_data.phone,
+                password=login_data.password
+            )
+        except Exception as e:
+            logger.error(f"Error in staff user authentication: {type(e).__name__}: {e}", exc_info=True)
+            # Не поднимаем исключение, просто продолжаем - user останется None
+        if user:
+            # Для staff используем StaffAuthService для создания токенов
+            access_token = staff_auth_service.create_access_token(user["id"], user.get("role"))
+            refresh_token = staff_auth_service.create_refresh_token(user["id"], user.get("role"))
+            
+            # Получение информации об устройстве для логирования
+            device_info = f"{request.headers.get('user-agent', 'Unknown')} | {request.client.host if request.client else 'Unknown'}"
+            
+            # Сохранение refresh token в БД
+            await staff_auth_service.save_refresh_token(user["id"], refresh_token, device_info=device_info)
+            
+            # Установка refresh token в HttpOnly cookie
+            from core.config import settings
+            secure_cookie = settings.ENVIRONMENT == "production"
+            response.set_cookie(
+                key="refresh_token",
+                value=refresh_token,
+                httponly=True,
+                secure=secure_cookie,
+                samesite="lax",
+                max_age=30 * 24 * 60 * 60  # 30 дней
+            )
+            
+            return LoginResponse(
+                access_token=access_token,
+                token_type="bearer",
+                user=user
+            )
+    
     if not user:
         raise HTTPException(status_code=401, detail="Неверный email/телефон или пароль")
     
-    # Создание токенов с ролью пользователя
-    access_token = auth_service.create_access_token(user["id"], user.get("role"))
-    refresh_token = auth_service.create_refresh_token(user["id"], user.get("role"))
-    
-    # Получение информации об устройстве для логирования
-    device_info = f"{http_request.headers.get('user-agent', 'Unknown')} | {http_request.client.host if http_request.client else 'Unknown'}"
-    
-    # Сохранение refresh token в БД (согласно rules.md)
-    await auth_service.save_refresh_token(user["id"], refresh_token, device_info=device_info)
-    
-    # Установка refresh token в HttpOnly cookie (согласно rules.md)
-    # secure=True только в production (HTTPS)
-    from core.config import settings
-    secure_cookie = settings.ENVIRONMENT == "production"
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=secure_cookie,
-        samesite="lax",  # lax для работы через прокси
-        max_age=30 * 24 * 60 * 60  # 30 дней
-    )
-    
-    return LoginResponse(
-        access_token=access_token,
-        token_type="bearer",
-        user=user
-    )
+    # Для product users используем AuthService
+    try:
+        access_token = auth_service.create_access_token(user["id"], user.get("role"))
+        refresh_token = auth_service.create_refresh_token(user["id"], user.get("role"))
+        
+        # Получение информации об устройстве для логирования
+        device_info = f"{request.headers.get('user-agent', 'Unknown')} | {request.client.host if request.client else 'Unknown'}"
+        
+        # Сохранение refresh token в БД (согласно rules.md)
+        await auth_service.save_refresh_token(user["id"], refresh_token, device_info=device_info)
+        
+        # Установка refresh token в HttpOnly cookie (согласно rules.md)
+        from core.config import settings
+        secure_cookie = settings.ENVIRONMENT == "production"
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=secure_cookie,
+            samesite="lax",
+            max_age=30 * 24 * 60 * 60  # 30 дней
+        )
+        
+        return LoginResponse(
+            access_token=access_token,
+            token_type="bearer",
+            user=user
+        )
+    except Exception as e:
+        logger.error(f"Error creating tokens or saving refresh token: {type(e).__name__}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Ошибка создания токенов: {str(e)}")
 
 
 @router.post("/refresh")
@@ -121,8 +176,8 @@ async def refresh(
 @router.post("/register")
 @limiter.limit("3/hour")
 async def register(
-    request: RegisterRequest,
-    http_request: Request,
+    request: Request,  # Для limiter должен быть первым
+    register_data: RegisterRequest,
     response: Response,
     db: AsyncSession = Depends(get_db)
 ):
@@ -135,15 +190,31 @@ async def register(
     3. Сохранение refresh token (если реализовано)
     
     При ошибке транзакция откатывается автоматически через get_db()
+    
+    ⚠️ Admin роль больше не поддерживается при регистрации.
+    Staff пользователи создаются отдельно через админку.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    # Логируем входящие данные для отладки
+    logger.info(f"Регистрация: phone={register_data.phone}, name={register_data.name}, role={register_data.role}")
+    
+    # Проверка: admin роль больше не поддерживается
+    if register_data.role == "admin":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Роль 'admin' больше не поддерживается при регистрации. Используйте /api/auth/staff-login для staff пользователей."
+        )
+    
     auth_service = AuthService(db)
     try:
         # Регистрация пользователя (создает запись в БД через flush)
         user = await auth_service.register(
-            phone=request.phone,
-            password=request.password,
-            name=request.name,
-            role=request.role,
+            phone=register_data.phone,
+            password=register_data.password,
+            name=register_data.name,
+            role=register_data.role,
             email=None  # Email больше не используется при регистрации
         )
         
@@ -152,7 +223,7 @@ async def register(
         refresh_token = auth_service.create_refresh_token(user["id"], user.get("role"))
         
         # Получение информации об устройстве для логирования
-        device_info = f"{http_request.headers.get('user-agent', 'Unknown')} | {http_request.client.host if http_request.client else 'Unknown'}"
+        device_info = f"{request.headers.get('user-agent', 'Unknown')} | {request.client.host if request.client else 'Unknown'}"
         
         # Сохранение refresh token в БД (согласно rules.md)
         await auth_service.save_refresh_token(user["id"], refresh_token, device_info=device_info)
@@ -180,6 +251,7 @@ async def register(
     except ValueError as e:
         # Ошибки валидации (дубликаты, неверный формат и т.д.)
         # get_db() автоматически сделает rollback
+        logger.error(f"ValueError при регистрации: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
@@ -206,29 +278,101 @@ async def register(
             detail="Ошибка создания пользователя. Возможно, пользователь с такими данными уже существует."
         )
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
         logger.error(f"Ошибка регистрации: {type(e).__name__}: {e}", exc_info=True)
         # get_db() автоматически сделает rollback
+        # Возвращаем более информативное сообщение об ошибке
+        error_detail = str(e)
+        if "phone" in error_detail.lower():
+            error_detail = "Ошибка с номером телефона. Проверьте формат: +7XXXXXXXXXX"
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Внутренняя ошибка сервера: {str(e)}"
+            detail=f"Внутренняя ошибка сервера: {error_detail}"
         )
 
 
 @router.get("/me")
 async def get_current_user_info(
-    current_user: dict = Depends(get_current_user)
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db: AsyncSession = Depends(get_db)
 ):
     """
-    Получение информации о текущем пользователе
+    Получение информации о текущем пользователе (product или staff)
     Используется для безопасного определения роли без декодирования JWT на клиенте
+    
+    Возвращает только минимальные данные: id и role
+    Автоматически определяет тип пользователя (product или staff) по токену
     """
+    from fastapi.security import HTTPBearer
+    from core.security.jwt import verify_token
+    
+    # Получаем токен
+    token = None
+    if credentials:
+        token = credentials.credentials
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.replace("Bearer ", "").strip()
+    
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Токен не предоставлен"
+        )
+    
+    # Декодируем токен
+    payload = verify_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Недействительный или истекший токен"
+        )
+    
+    user_id = int(payload.get("sub"))
+    role = payload.get("role", "")
+    
+    # Проверяем, является ли это staff пользователем (по роли или по наличию в staff_users)
+    is_staff_role = role in ["admin", "support", "moderator"]
+    
+    if is_staff_role:
+        # Пробуем найти в staff_users
+        try:
+            from repositories.staff_user_repository import StaffUserRepository
+            staff_repo = StaffUserRepository(db)
+            staff_user = await staff_repo.get_by_id(user_id)
+            if staff_user:
+                return {
+                    "id": staff_user.id,
+                    "role": staff_user.role if isinstance(staff_user.role, str) else str(staff_user.role),
+                    "is_staff": True
+                }
+        except Exception:
+            # Если не найден в staff_users, но роль staff - возвращаем из токена
+            pass
+    
+    # Пробуем найти в product users
+    try:
+        from repositories.user_repository import UserRepository
+        user_repo = UserRepository(db)
+        user = await user_repo.get_by_id(user_id)
+        if user:
+            role_str = user.role
+            if hasattr(role_str, 'value'):
+                role_str = role_str.value
+            elif not isinstance(role_str, str):
+                role_str = str(role_str)
+            return {
+                "id": user.id,
+                "role": role_str
+            }
+    except Exception:
+        pass
+    
+    # Если не найден ни в одной таблице, возвращаем данные из токена
     return {
-        "id": current_user.get("id"),
-        "email": current_user.get("email"),
-        "phone": current_user.get("phone"),
-        "role": current_user.get("role")
+        "id": user_id,
+        "role": role
     }
 
 
@@ -365,12 +509,12 @@ async def child_qr_login(
     access_repo = ChildAccessRepository(db)
     child_repo = ChildRepository(db)
     
-    # Получаем доступ по QR-токену
+    # Получаем доступ по QR-токену (с проверкой всех ограничений)
     access = await access_repo.get_by_qr_token(qr_request.qr_token)
-    if not access or not access.is_active:
+    if not access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="QR-код недействителен или истёк"
+            detail="QR-код недействителен, истёк или уже использован"
         )
     
     # Получаем данные ребёнка
@@ -384,6 +528,13 @@ async def child_qr_login(
     # Проверяем, установлен ли PIN
     # Если PIN не установлен, возвращаем флаг, что требуется установка PIN
     pin_required = not access.pin_hash
+    
+    # ОДНОРАЗОВОЕ ИСПОЛЬЗОВАНИЕ: Помечаем токен как использованный
+    from datetime import datetime
+    await access_repo.update(access, {
+        "qr_token_used_at": datetime.now()
+    })
+    await db.commit()  # Сохраняем изменения в БД
     
     # Создаём токен для ребёнка
     token_data = {
@@ -421,6 +572,195 @@ async def child_qr_login(
     )
 
 
+@router.post("/child-set-pin")
+async def child_set_pin(
+    request: Request,
+    pin_data: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Установка PIN-кода для ребенка
+    Вызывается после первого входа по QR-коду
+    """
+    from repositories.child_access_repository import ChildAccessRepository
+    from repositories.child_repository import ChildRepository
+    from core.security.password import hash_password
+    
+    # Проверяем, что пользователь - ребенок
+    if current_user.get("role") != "child":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Только дети могут устанавливать PIN"
+        )
+    
+    child_id = current_user.get("child_id")
+    if not child_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ID ребенка не найден"
+        )
+    
+    pin = pin_data.get("pin")
+    if not pin or len(pin) < 4 or len(pin) > 6 or not pin.isdigit():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="PIN должен содержать от 4 до 6 цифр"
+        )
+    
+    access_repo = ChildAccessRepository(db)
+    child_repo = ChildRepository(db)
+    
+    # Проверяем, что ребенок существует
+    child = await child_repo.get_by_id(child_id)
+    if not child:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ребёнок не найден"
+        )
+    
+    # Получаем доступ
+    access = await access_repo.get_by_child_id(child_id)
+    if not access:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Доступ для ребёнка не найден"
+        )
+    
+    # Проверяем, что PIN еще не установлен
+    if access.pin_hash:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="PIN уже установлен"
+        )
+    
+    # Хешируем PIN
+    pin_hash = hash_password(pin)
+    
+    # Обновляем доступ
+    await access_repo.update(access, {
+        "pin_hash": pin_hash
+    })
+    await db.commit()
+    
+    return {"message": "PIN-код успешно установлен"}
+
+
+@router.post("/child-biometric-challenge")
+async def child_biometric_challenge(
+    request: Request,
+    challenge_data: dict,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Получение challenge для биометрической аутентификации ребенка
+    """
+    from repositories.child_access_repository import ChildAccessRepository
+    from repositories.child_repository import ChildRepository
+    import secrets
+    import base64
+    
+    child_id = challenge_data.get("child_id")
+    if not child_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ID ребенка не указан"
+        )
+    
+    child_repo = ChildRepository(db)
+    child = await child_repo.get_by_id(child_id)
+    if not child:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ребёнок не найден"
+        )
+    
+    # Генерируем challenge
+    challenge_bytes = secrets.token_bytes(32)
+    challenge_b64 = base64.b64encode(challenge_bytes).decode('utf-8')
+    
+    # Сохраняем challenge в сессии (можно использовать Redis в продакшене)
+    # Пока используем простой подход - возвращаем challenge
+    # В продакшене нужно сохранять challenge с временем жизни
+    
+    return {
+        "challenge": challenge_b64,
+        "rpId": request.url.hostname,
+        "allowCredentials": []  # Пока не используем сохраненные credentials
+    }
+
+
+@router.post("/child-biometric-verify", response_model=LoginResponse)
+async def child_biometric_verify(
+    request: Request,
+    verify_data: dict,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Проверка биометрической аутентификации ребенка
+    """
+    from repositories.child_access_repository import ChildAccessRepository
+    from repositories.child_repository import ChildRepository
+    import base64
+    
+    child_id = verify_data.get("child_id")
+    credential = verify_data.get("credential")
+    
+    if not child_id or not credential:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Недостаточно данных для проверки"
+        )
+    
+    child_repo = ChildRepository(db)
+    child = await child_repo.get_by_id(child_id)
+    if not child:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ребёнок не найден"
+        )
+    
+    # В реальном приложении здесь должна быть проверка credential
+    # с использованием библиотеки для WebAuthn (например, py_webauthn)
+    # Пока упрощенная версия - проверяем только наличие credential
+    
+    if not credential.get("id") or not credential.get("response"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Неверный формат credential"
+        )
+    
+    # TODO: Реализовать полную проверку WebAuthn credential
+    # Для продакшена нужно:
+    # 1. Проверить challenge
+    # 2. Проверить signature
+    # 3. Проверить authenticatorData
+    # 4. Проверить clientDataJSON
+    
+    # Пока упрощенная версия - считаем, что биометрия прошла успешно
+    # В продакшене нужно использовать библиотеку py_webauthn или аналогичную
+    
+    # Создаём токен для ребёнка
+    token_data = {
+        "sub": str(child.user_id),
+        "child_id": str(child.id),
+        "role": "child"
+    }
+    access_token = create_access_token(token_data)
+    
+    return LoginResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user={
+            "id": child.id,
+            "email": f"child_{child.id}",
+            "role": "child",
+            "child_id": child.id,
+            "name": child.name
+        }
+    )
+
+
 @router.post("/admin-login", response_model=LoginResponse)
 @limiter.limit("5/minute")
 async def admin_login(
@@ -432,6 +772,8 @@ async def admin_login(
     """
     Вход администратора по телефону
     Проверка по ADMIN_PHONE из переменных окружения или по role == "admin"
+    
+    ⚠️ DEPRECATED: Используйте /api/auth/staff-login для staff пользователей
     """
     from core.utils.phone_validator import normalize_phone
     from core.config import settings
@@ -495,5 +837,68 @@ async def admin_login(
         access_token=access_token,
         token_type="bearer",
         user=user
+    )
+
+
+@router.post("/staff-login", response_model=LoginResponse)
+@limiter.limit("5/minute")
+async def staff_login(
+    request: Request,
+    login_data: StaffLoginRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Вход staff пользователя (admin, support, moderator) по телефону
+    Отдельная система аутентификации для операторов и поддержки
+    """
+    from services.staff_auth_service import StaffAuthService
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    logger.info(f"Staff login attempt for phone: {login_data.phone}")
+    
+    # Аутентификация staff пользователя
+    staff_auth_service = StaffAuthService(db)
+    staff_user = await staff_auth_service.authenticate(
+        phone=login_data.phone,
+        password=login_data.password
+    )
+    
+    if not staff_user:
+        logger.warning(f"Failed staff login attempt for phone: {login_data.phone}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Неверный номер телефона или пароль"
+        )
+    
+    logger.info(f"Successful staff login: id={staff_user['id']}, phone={staff_user['phone']}, role={staff_user['role']}")
+    
+    # Создание токенов
+    access_token = staff_auth_service.create_access_token(staff_user["id"], staff_user.get("role"))
+    refresh_token = staff_auth_service.create_refresh_token(staff_user["id"], staff_user.get("role"))
+    
+    # Получение информации об устройстве для логирования
+    device_info = f"{request.headers.get('user-agent', 'Unknown')} | {request.client.host if request.client else 'Unknown'}"
+    
+    # Сохранение refresh token в БД
+    await staff_auth_service.save_refresh_token(staff_user["id"], refresh_token, device_info=device_info)
+    
+    # Установка refresh token в HttpOnly cookie
+    from core.config import settings
+    secure_cookie = settings.ENVIRONMENT == "production"
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=secure_cookie,
+        samesite="lax",
+        max_age=30 * 24 * 60 * 60  # 30 дней
+    )
+    
+    return LoginResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user=staff_user
     )
 

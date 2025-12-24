@@ -1,10 +1,13 @@
 /**
  * Клиентский роутер для SPA
- * Обрабатывает маршруты: /admin, /parent, /child, /
+ * Обрабатывает маршруты: /parent, /child, /
  * 
  * ⚠️ ОГРАНИЧЕНИЕ: Роутер плоский, вложенные маршруты не поддерживаются
- * Например: /admin/users/123 - не поддерживается
- * Используйте query параметры: /admin?user=123
+ * Например: /parent/children/123 - не поддерживается
+ * Используйте query параметры: /parent?child=123
+ * 
+ * ⚠️ /admin больше не поддерживается в product SPA
+ * Админы должны использовать /staff/login
  */
 class Router {
   constructor() {
@@ -30,8 +33,9 @@ class Router {
       }
     });
 
-    // Обработка начального маршрута
-    this.handleRoute();
+    // НЕ обрабатываем начальный маршрут здесь - это будет сделано
+    // после регистрации всех маршрутов в index.html
+    // this.handleRoute();
   }
 
   /**
@@ -77,12 +81,33 @@ class Router {
         this.currentParams = params;
       } catch (error) {
         console.error('Ошибка обработки маршрута:', error);
-        this.navigate('/');
+        // НЕ редиректим на / если это /admin - показываем ошибку
+        if (fullPath === '/admin') {
+          console.error('Ошибка загрузки админки, но остаёмся на /admin');
+        } else {
+          this.navigate('/');
+        }
       }
     } else {
-      // Маршрут не найден - редирект на главную
-      console.warn('Маршрут не найден:', fullPath);
-      this.navigate('/');
+      // Маршрут не найден
+      if (fullPath === '/admin') {
+        // /admin больше не поддерживается в product SPA
+        console.warn('⚠️ /admin больше не поддерживается. Используйте /staff/login для staff пользователей.');
+        alert('Админ-панель перемещена. Пожалуйста, используйте /staff/login для входа в staff панель.');
+        this.navigate('/');
+      } else if (fullPath.startsWith('/staff')) {
+        // Staff маршруты обрабатываются отдельно
+        console.warn('⚠️ Staff маршруты должны обрабатываться через staff.html или отдельный SPA');
+        // Редирект на staff.html для /staff/login
+        if (fullPath === '/staff/login') {
+          window.location.href = '/staff.html';
+        } else {
+          this.navigate('/staff/login');
+        }
+      } else {
+        console.warn('Маршрут не найден:', fullPath);
+        this.navigate('/');
+      }
     }
   }
 

@@ -20,6 +20,7 @@ from models.notification import Notification, NotificationType, NotificationStat
 from models.refresh_token import RefreshToken
 from models.child_access import ChildAccess
 from models.family_rules import FamilyRules
+from models.staff_user import StaffUser, StaffRole
 
 __all__ = [
     "Base",
@@ -45,4 +46,6 @@ __all__ = [
     "ChildAccess",
     "RefreshToken",
     "FamilyRules",
+    "StaffUser",
+    "StaffRole",
 ]

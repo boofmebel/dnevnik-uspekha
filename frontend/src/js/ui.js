@@ -65,6 +65,13 @@ function openPage(id, btn) {
     renderDiary();
   } else if (id === 'stats') {
     renderWeeklyStats();
+  } else if (id === 'children') {
+    // Загружаем список детей при открытии страницы
+    if (typeof initChildren === 'function') {
+      initChildren();
+    } else if (typeof loadChildren === 'function' && typeof renderChildrenList === 'function') {
+      loadChildren().then(() => renderChildrenList());
+    }
   }
 }
 

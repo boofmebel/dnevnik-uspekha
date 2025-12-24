@@ -52,10 +52,12 @@ jobs:
               pip install -q -r backend/requirements.txt
             fi
             
-            # Применяем миграции (если есть)
+            # Применяем миграции к продакшн БД
             if [ -f "backend/alembic.ini" ]; then
-              echo "🗄️  Применяем миграции базы данных..."
+              echo "🗄️  Применяем миграции к продакшн БД (dnevnik_prod)..."
               cd backend
+              # Убеждаемся, что используется продакшн БД
+              export DATABASE_URL=$(echo $DATABASE_URL | sed 's/dnevnik_test/dnevnik_prod/g' | sed 's/dnevnik_uspekha/dnevnik_prod/g')
               alembic upgrade head || echo "⚠️  Миграции не применены (возможно, БД не настроена)"
               cd ..
             fi

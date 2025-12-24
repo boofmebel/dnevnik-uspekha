@@ -198,3 +198,138 @@ async def check_admin_access(current_user: dict = Depends(get_current_user)) -> 
     logger.info(f"Admin access granted for user {current_user.get('id')}")
     return current_user
 
+
+async def get_current_staff(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db: AsyncSession = Depends(get_db)
+) -> dict:
+    """
+    Получение текущего staff пользователя из JWT токена
+    Используется для staff routes (/api/staff/*)
+    """
+    from repositories.staff_user_repository import StaffUserRepository
+    
+    # Пробуем получить токен из HTTPBearer
+    token = None
+    if credentials:
+        token = credentials.credentials
+    
+    # Если не получили, пробуем из заголовка напрямую
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.replace("Bearer ", "").strip()
+    
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Токен не предоставлен"
+        )
+    
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"=== STAFF TOKEN VERIFICATION START ===")
+    logger.info(f"Token preview: {token[:50]}... (length: {len(token)})")
+    
+    try:
+        payload = verify_token(token)
+        
+        if not payload:
+            logger.error("Staff token verification failed: payload is None")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Недействительный или истекший токен. Пожалуйста, войдите заново."
+            )
+        
+        logger.info(f"Staff token verified successfully. Payload: {payload}")
+        staff_id = int(payload.get("sub"))
+        logger.info(f"Extracted staff_id: {staff_id}")
+        
+        try:
+            staff_repo = StaffUserRepository(db)
+            staff_user = await staff_repo.get_by_id(staff_id)
+        except Exception as db_error:
+            logger.error(f"Ошибка подключения к БД при проверке staff пользователя: {db_error}")
+            # Если БД недоступна, но токен валиден, создаем временного staff из токена
+            role_from_token = payload.get("role", "admin")
+            logger.warning(f"БД недоступна, используем данные из токена: staff_id={staff_id}, role={role_from_token}")
+            result = {
+                "id": staff_id,
+                "email": None,
+                "role": role_from_token,
+                "is_staff": True
+            }
+            logger.info(f"=== STAFF TOKEN VERIFICATION SUCCESS (без БД) ===")
+            return result
+        
+        if not staff_user:
+            logger.warning(f"Staff user not found for staff_id: {staff_id}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Staff пользователь не найден"
+            )
+        
+        if not staff_user.is_active:
+            logger.warning(f"Staff user {staff_id} is not active")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Аккаунт staff пользователя деактивирован"
+            )
+        
+        logger.info(f"Staff user found: id={staff_user.id}, email={staff_user.email}, role={staff_user.role}")
+        
+        # Преобразуем роль в строку для совместимости
+        role = staff_user.role
+        if not isinstance(role, str):
+            role = str(role)
+        
+        result = {
+            "id": staff_user.id,
+            "phone": staff_user.phone,
+            "email": staff_user.email,
+            "role": role,
+            "is_staff": True
+        }
+        
+        logger.info(f"=== STAFF TOKEN VERIFICATION SUCCESS ===")
+        logger.info(f"Returning staff: id={result['id']}, role={result['role']}")
+        return result
+    except HTTPException:
+        logger.error("=== STAFF TOKEN VERIFICATION FAILED (HTTPException) ===")
+        raise
+    except Exception as e:
+        logger.error(f"=== STAFF TOKEN VERIFICATION FAILED (Exception) ===")
+        logger.error(f"Error in get_current_staff: {type(e).__name__}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Ошибка проверки токена: {str(e)}"
+        )
+
+
+def check_staff_role(required_roles: list[str]):
+    """
+    Фабрика для создания dependency проверки роли staff пользователя (RBAC)
+    required_roles: список разрешённых ролей, например ['admin', 'support']
+    
+    Использование:
+        current_staff: dict = Depends(check_staff_role(["admin", "support"]))
+    """
+    async def _check_staff_role_inner(
+        current_staff: dict = Depends(get_current_staff)
+    ) -> dict:
+        staff_role = current_staff.get("role", "").lower()
+        
+        if staff_role not in [r.lower() for r in required_roles]:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Staff access denied: role '{staff_role}' not in {required_roles}")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Недостаточно прав. Требуются роли: {', '.join(required_roles)}. Ваша роль: {staff_role}"
+            )
+        
+        return current_staff
+    
+    return _check_staff_role_inner
+

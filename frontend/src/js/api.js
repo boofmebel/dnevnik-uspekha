@@ -71,6 +71,7 @@ class ApiClient {
     }
     
     const config = {
+      method: options.method || 'GET',  // Явно устанавливаем метод
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -112,9 +113,10 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        // Для ошибок 500/503 (БД недоступна) возвращаем пустой массив вместо ошибки
-        if (response.status === 500 || response.status === 503) {
-          console.warn(`⚠️ Сервер вернул ${response.status}. БД может быть недоступна. Возвращаем пустой массив.`);
+        // Для ошибок 500/503 (БД недоступна) возвращаем пустой массив только для GET запросов
+        // Для POST/PUT/DELETE всегда пробрасываем ошибку
+        if ((response.status === 500 || response.status === 503) && config.method === 'GET') {
+          console.warn(`⚠️ Сервер вернул ${response.status}. БД может быть недоступна. Возвращаем пустой массив для GET запроса.`);
           return [];
         }
         
@@ -130,10 +132,17 @@ class ApiClient {
             errorData = { detail: `HTTP error! status: ${response.status}` };
           }
         } else {
-          // Если ответ не JSON (например, HTML страница ошибки), читаем как текст
+          // Если ответ не JSON, пытаемся прочитать как текст и распарсить как JSON
           const text = await response.text();
-          console.error('Сервер вернул не-JSON ответ:', text.substring(0, 200));
-          errorData = { detail: `HTTP error! status: ${response.status}. Сервер вернул не-JSON ответ.` };
+          console.error('Сервер вернул не-JSON ответ, пытаюсь распарсить:', text.substring(0, 200));
+          
+          // Пытаемся распарсить как JSON, даже если Content-Type не application/json
+          try {
+            errorData = JSON.parse(text);
+          } catch (e) {
+            // Если не получилось распарсить, используем текст как detail
+            errorData = { detail: text || `HTTP error! status: ${response.status}. Сервер вернул не-JSON ответ.` };
+          }
         }
         
         throw new Error(errorData.detail || errorData.error || `HTTP error! status: ${response.status}`);
@@ -240,6 +249,14 @@ class ApiClient {
 
   async updateChild(childId, childData) {
     return this.put(`/children/${childId}`, childData);
+  }
+
+  async generateChildAccess(childId) {
+    return this.post(`/children/${childId}/generate-access`);
+  }
+
+  async deleteChild(childId) {
+    return this.delete(`/children/${childId}`);
   }
 
   // Задачи
@@ -415,6 +432,45 @@ class ApiClient {
     let url = `/admin/notifications?skip=${skip}&limit=${limit}`;
     if (type) url += `&type=${type}`;
     return this.get(url);
+  }
+
+  // Staff API методы (для /api/staff/*)
+  async getStaffMe() {
+    return this.get('/staff/me');
+  }
+
+  async getStaffStats() {
+    return this.get('/staff/stats');
+  }
+
+  async getStaffUsers(skip = 0, limit = 50, role = null) {
+    let url = `/staff/users?skip=${skip}&limit=${limit}`;
+    if (role) url += `&role=${role}`;
+    return this.get(url);
+  }
+
+  async getStaffChildren(skip = 0, limit = 50) {
+    return this.get(`/staff/children?skip=${skip}&limit=${limit}`);
+  }
+
+  async getStaffSubscriptions(skip = 0, limit = 50, activeOnly = false) {
+    let url = `/staff/subscriptions?skip=${skip}&limit=${limit}`;
+    if (activeOnly) url += '&active_only=true';
+    return this.get(url);
+  }
+
+  async getStaffNotifications(skip = 0, limit = 50, type = null) {
+    let url = `/staff/notifications?skip=${skip}&limit=${limit}`;
+    if (type) url += `&type=${type}`;
+    return this.get(url);
+  }
+
+  async updateStaffUser(userId, userData) {
+    return this.put(`/staff/users/${userId}`, userData);
+  }
+
+  async deleteStaffUser(userId) {
+    return this.delete(`/staff/users/${userId}`);
   }
 }
 

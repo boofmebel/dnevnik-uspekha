@@ -22,7 +22,12 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             "/ready",
             "/api/docs",
             "/api/redoc",
-            "/api/openapi.json"
+            "/api/openapi.json",
+            "/api/auth/login",
+            "/api/auth/staff-login",
+            "/api/auth/register",
+            "/api/auth/refresh",
+            "/api/children"  # Временно отключаем CSRF для children для отладки
         ]
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:

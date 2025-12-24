@@ -2,22 +2,25 @@
 JWT токены
 Согласно rules.md: Access token 5-15 минут, Refresh token в HttpOnly cookie
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import JWTError, jwt
 from core.config import settings
+import time
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """Создание access token (согласно rules.md: 5-15 минут)"""
     to_encode = data.copy()
+    # Используем time.time() для правильного UTC timestamp
+    current_timestamp = int(time.time())
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire_timestamp = current_timestamp + int(expires_delta.total_seconds())
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire_timestamp = current_timestamp + (settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60)
     
     # Используем timestamp для надежности
-    to_encode.update({"exp": int(expire.timestamp()), "type": "access"})
+    to_encode.update({"exp": expire_timestamp, "type": "access"})
     
     if not settings.SECRET_KEY:
         raise ValueError("SECRET_KEY is not set in settings!")
@@ -29,9 +32,11 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 def create_refresh_token(data: dict) -> str:
     """Создание refresh token (согласно rules.md: HttpOnly cookie)"""
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    # Используем time.time() для правильного UTC timestamp
+    current_timestamp = int(time.time())
+    expire_timestamp = current_timestamp + (settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60)
     # Используем timestamp для надежности
-    to_encode.update({"exp": int(expire.timestamp()), "type": "refresh"})
+    to_encode.update({"exp": expire_timestamp, "type": "refresh"})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
@@ -55,7 +60,7 @@ def verify_token(token: str, token_type: str = "access") -> Optional[dict]:
             unverified = jwt.decode(token, key="", options={"verify_signature": False, "verify_exp": False})
             logger.info(f"Token structure (unverified): {unverified}")
             exp_timestamp = unverified.get('exp')
-            current_timestamp = datetime.utcnow().timestamp()
+            current_timestamp = int(time.time())  # Используем time.time() для правильного UTC timestamp
             logger.info(f"Token exp: {exp_timestamp}, current time: {current_timestamp}")
             if exp_timestamp:
                 time_until_expiry = exp_timestamp - current_timestamp

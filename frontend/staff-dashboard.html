@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Staff Dashboard - Дневник успеха</title>
+  <link rel="stylesheet" href="static/css/staff.css" />
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+    }
+    .staff-dashboard {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .staff-header {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .staff-header h1 {
+      margin: 0;
+      color: #333;
+    }
+    .staff-info {
+      margin-top: 10px;
+      color: #666;
+    }
+    .staff-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .logout-btn {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .logout-btn:hover {
+      background: #c0392b;
+    }
+  </style>
+</head>
+<body>
+  <div class="staff-dashboard">
+    <div class="staff-header">
+      <h1>🔐 Staff Dashboard</h1>
+      <div class="staff-info">
+        <p>Добро пожаловать в панель управления staff!</p>
+        <p id="staff-user-info">Загрузка...</p>
+      </div>
+      <button class="logout-btn" onclick="logout()">Выйти</button>
+    </div>
+    <div class="staff-content">
+      <h2>Панель управления</h2>
+      <p>Здесь будет контент staff панели.</p>
+    </div>
+  </div>
+
+  <script>
+    console.log('🔐 Staff Dashboard: Загрузка...');
+    
+    // Проверяем авторизацию
+    const token = sessionStorage.getItem('access_token');
+    console.log('🔍 Staff Dashboard: Токен найден?', !!token);
+    
+    if (!token) {
+      console.warn('⚠️ Staff Dashboard: Токен отсутствует, редирект на /staff/login');
+      window.location.replace('/staff/login');
+      // Останавливаем выполнение скрипта
+      throw new Error('Токен отсутствует');
+    }
+
+    // Загружаем информацию о пользователе
+    async function loadStaffInfo() {
+      try {
+        console.log('📤 Staff Dashboard: Запрос /api/staff/me...');
+        const response = await fetch('/api/staff/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        console.log('📥 Staff Dashboard: Ответ /api/staff/me:', response.status);
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            // Токен невалиден - редирект на вход
+            console.warn('⚠️ Staff Dashboard: Токен невалиден, редирект на /staff/login');
+            sessionStorage.removeItem('access_token');
+            window.location.replace('/staff/login');
+            return;
+          }
+          throw new Error('Не удалось загрузить информацию');
+        }
+        
+        const data = await response.json();
+        console.log('✅ Staff Dashboard: Данные пользователя:', data);
+        
+        document.getElementById('staff-user-info').textContent = 
+          `ID: ${data.id}, Phone: ${data.phone || 'N/A'}, Email: ${data.email || 'N/A'}, Role: ${data.role}`;
+      } catch (error) {
+        console.error('❌ Staff Dashboard: Ошибка загрузки информации:', error);
+        document.getElementById('staff-user-info').textContent = 'Ошибка загрузки информации';
+        
+        // Если ошибка авторизации - редирект на вход
+        if (error.message.includes('401') || error.message.includes('токен')) {
+          sessionStorage.removeItem('access_token');
+          window.location.replace('/staff/login');
+        }
+      }
+    }
+
+    function logout() {
+      console.log('🚪 Staff Dashboard: Выход...');
+      sessionStorage.removeItem('access_token');
+      window.location.replace('/staff/login');
+    }
+
+    // Делаем logout доступным глобально
+    window.logout = logout;
+
+    // Загружаем информацию о пользователе
+    loadStaffInfo();
+  </script>
+</body>
+</html>

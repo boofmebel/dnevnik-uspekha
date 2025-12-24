@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Staff Login - Дневник успеха</title>
+  <link rel="stylesheet" href="static/css/auth.css?v=3" />
+  <style>
+    .staff-login-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+    }
+    .staff-login-card {
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      max-width: 400px;
+      width: 100%;
+    }
+    .staff-login-title {
+      text-align: center;
+      color: #333;
+      margin-bottom: 30px;
+      font-size: 24px;
+    }
+    .staff-form-group {
+      margin-bottom: 20px;
+    }
+    .staff-form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #555;
+      font-weight: 500;
+    }
+    .staff-form-group input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+    .staff-form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    .staff-btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .staff-btn:hover {
+      transform: translateY(-2px);
+    }
+    .staff-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .staff-error {
+      color: #e74c3c;
+      margin-top: 10px;
+      text-align: center;
+      display: none;
+    }
+    .staff-error.show {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="staff-login-container">
+    <div class="staff-login-card">
+      <h1 class="staff-login-title">🔐 Staff Login</h1>
+      <form id="staff-login-form">
+        <div class="staff-form-group">
+          <label for="staff-phone">Номер телефона:</label>
+          <input type="tel" id="staff-phone" required placeholder="+7 (999) 123-45-67" />
+        </div>
+        <div class="staff-form-group">
+          <label for="staff-password">Пароль:</label>
+          <input type="password" id="staff-password" required placeholder="Введите пароль" />
+        </div>
+        <div id="staff-error" class="staff-error"></div>
+        <button type="submit" class="staff-btn" id="staff-submit-btn">Войти</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Ждём загрузки DOM
+    document.addEventListener('DOMContentLoaded', async function() {
+      // Проверяем, не авторизован ли уже пользователь
+      const existingToken = sessionStorage.getItem('access_token');
+      if (existingToken) {
+        console.log('🔍 Staff Login: Найден существующий токен, проверяю валидность...');
+        try {
+          const response = await fetch('/api/staff/me', {
+            headers: {
+              'Authorization': `Bearer ${existingToken}`
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            console.log('✅ Staff Login: Пользователь уже авторизован:', data.role);
+            // Пользователь уже авторизован - редирект на dashboard
+            window.location.replace('/staff/dashboard');
+            return; // Прекращаем выполнение скрипта
+          } else {
+            // Токен невалиден - удаляем и показываем форму
+            console.warn('⚠️ Staff Login: Токен невалиден, удаляю');
+            sessionStorage.removeItem('access_token');
+          }
+        } catch (error) {
+          console.error('❌ Staff Login: Ошибка проверки токена:', error);
+          sessionStorage.removeItem('access_token');
+        }
+      }
+      
+      const form = document.getElementById('staff-login-form');
+      const errorEl = document.getElementById('staff-error');
+      const submitBtn = document.getElementById('staff-submit-btn');
+
+      if (!form || !errorEl || !submitBtn) {
+        console.error('Не найдены элементы формы');
+        return;
+      }
+
+      // Простая функция для сохранения токена в sessionStorage
+      function setAccessToken(token) {
+        sessionStorage.setItem('access_token', token);
+        console.log('✅ Токен сохранён в sessionStorage');
+      }
+
+      form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      console.log('🔐 Staff: Форма отправлена');
+      
+      const phone = document.getElementById('staff-phone').value.trim();
+      const password = document.getElementById('staff-password').value;
+      
+      console.log('📤 Staff: Данные для входа:', { phone, password: '***' });
+      
+      if (!phone || !password) {
+        errorEl.textContent = 'Заполните все поля';
+        errorEl.classList.add('show');
+        return;
+      }
+      
+      errorEl.classList.remove('show');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Вход...';
+      
+      try {
+        console.log('📤 Staff: Отправка запроса на /api/auth/login');
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({ phone, password })
+        });
+        
+        console.log('📥 Staff: Ответ получен:', response.status, response.statusText);
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ detail: 'Ошибка входа' }));
+          throw new Error(errorData.detail || 'Ошибка входа');
+        }
+        
+        const data = await response.json();
+        console.log('✅ Staff: Данные ответа:', { 
+          has_token: !!data.access_token, 
+          user_role: data.user?.role,
+          user_id: data.user?.id 
+        });
+        
+        if (!data.access_token) {
+          throw new Error('Токен не получен');
+        }
+        
+        // Сохраняем access token
+        setAccessToken(data.access_token);
+        
+        // Проверяем, что пользователь действительно staff
+        if (data.user && !['admin', 'support', 'moderator'].includes(data.user.role)) {
+          throw new Error('Доступ запрещён. Эта панель только для staff пользователей.');
+        }
+        
+        // Скрываем форму входа перед редиректом
+        const loginCard = document.querySelector('.staff-login-card');
+        if (loginCard) {
+          loginCard.style.display = 'none';
+          console.log('✅ Staff: Форма входа скрыта');
+        }
+        
+        // Редирект на staff dashboard
+        console.log('🔄 Staff: Авторизация успешна, редирект на /staff/dashboard');
+        // Используем replace вместо href, чтобы не было возможности вернуться назад
+        window.location.replace('/staff/dashboard');
+        
+      } catch (error) {
+        console.error('❌ Staff: Ошибка входа:', error);
+        errorEl.textContent = error.message || 'Ошибка входа. Проверьте номер телефона и пароль.';
+        errorEl.classList.add('show');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Войти';
+      }
+      });
+    });
+  </script>
+</body>
+</html>
+

@@ -23,7 +23,7 @@ class Child(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     name = Column(String, nullable=False, default="Ребёнок")
-    gender = Column(Enum(Gender), nullable=False, default=Gender.NONE)
+    gender = Column(Enum(Gender, native_enum=False, values_callable=lambda x: [e.value for e in x]), nullable=False, default=Gender.NONE)
     avatar = Column(Text, nullable=True)  # Base64 или URL
     
     # Связи

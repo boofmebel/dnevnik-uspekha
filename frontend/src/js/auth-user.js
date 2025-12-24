@@ -133,11 +133,21 @@ function checkAuth() {
 
 // Показать модальное окно авторизации
 function showAuthModal() {
-  document.getElementById('auth-modal').style.display = 'flex';
-  document.getElementById('app-content').style.display = 'none';
+  // Показываем форму пользовательского входа
+  const authModal = document.getElementById('auth-modal');
+  if (authModal) {
+    authModal.style.display = 'flex';
+  }
+  const appContent = document.getElementById('app-content');
+  if (appContent) {
+    appContent.style.display = 'none';
+  }
+  
   // Сбрасываем формы
-  document.getElementById('login-form').reset();
-  document.getElementById('register-form-modal').reset();
+  const loginForm = document.getElementById('login-form');
+  const registerForm = document.getElementById('register-form-modal');
+  if (loginForm) loginForm.reset();
+  if (registerForm) registerForm.reset();
   hideLoginError();
   hideRegisterError();
 }
@@ -214,19 +224,33 @@ async function handleLogin(event) {
     
     // Согласно rules.md: access token хранится только в памяти
     apiClient.setAccessToken(data.access_token);
-    // localStorage.setItem('user_token', data.access_token); // Удалено: токены не хранятся в localStorage
-    // localStorage.setItem('user_role', data.user?.role || 'parent'); // Опционально, если нужно сохранить роль
+    console.log('✅ handleLogin: токен установлен в apiClient');
     
-    // Показываем приложение
-    showApp();
-    
-    // Перезагружаем данные
-    if (typeof loadData === 'function') {
-      loadData();
+    // Скрываем форму входа ПЕРЕД вызовом bootstrapAuth
+    // Это важно, чтобы форма не показывалась снова, если bootstrapAuth покажет её
+    const authModal = document.getElementById('auth-modal');
+    if (authModal) {
+      authModal.style.display = 'none';
+      console.log('✅ handleLogin: форма входа скрыта');
     }
     
-    // Обновляем имя в шапке если есть
-    updateHeaderName(data.user?.name);
+    // Используем bootstrapAuth для правильного редиректа по роли
+    if (typeof bootstrapAuth === 'function') {
+      console.log('🔄 handleLogin: вызываю bootstrapAuth...');
+      await bootstrapAuth();
+      console.log('✅ handleLogin: bootstrapAuth выполнен');
+    } else {
+      console.warn('⚠️ handleLogin: bootstrapAuth не найден, использую fallback');
+      // Fallback: редирект по роли напрямую
+      const role = data.user?.role;
+      if (role === 'parent' && typeof router !== 'undefined') {
+        router.navigate('/parent', true);
+      } else if (role === 'child' && typeof router !== 'undefined') {
+        router.navigate('/child', true);
+      } else if (role === 'admin' || role === 'support' || role === 'moderator') {
+        window.location.href = '/staff/dashboard';
+      }
+    }
     
   } catch (error) {
     console.error('Ошибка входа:', error);
@@ -280,6 +304,14 @@ async function handleRegister(event) {
   try {
     const normalizedPhone = normalizePhone(phone);
     
+    // Логируем данные для отладки
+    console.log('📤 Отправка запроса регистрации:', {
+      phone: normalizedPhone,
+      name: name,
+      role: 'parent',
+      passwordLength: password.length
+    });
+    
     const response = await fetch('/api/auth/register', {
       method: 'POST',
       headers: {
@@ -296,18 +328,74 @@ async function handleRegister(event) {
     if (!response.ok) {
       let errorMessage = 'Ошибка регистрации';
       try {
-        const data = await response.json();
+        // Сначала читаем текст ответа (можно прочитать только один раз)
+        const text = await response.text();
+        console.log('📄 Текст ответа сервера:', text);
+        
+        // Пробуем распарсить как JSON
+        let data;
+        try {
+          data = JSON.parse(text);
+          console.error('Ошибка регистрации (JSON):', data);
+        } catch (parseError) {
+          // Если не JSON, используем текст как есть
+          console.error('Ошибка регистрации (не JSON):', text);
+          errorMessage = text || `Ошибка ${response.status}: ${response.statusText}`;
+          throw new Error(errorMessage);
+        }
+        
+        // Обрабатываем JSON ответ
         if (data.detail) {
           if (Array.isArray(data.detail)) {
+            // Ошибки валидации Pydantic (422)
             errorMessage = data.detail.map(err => {
               const field = err.loc && err.loc.length > 1 ? err.loc[err.loc.length - 1] : 'поле';
-              return `${field}: ${err.msg || 'Ошибка валидации'}`;
+              const msg = err.msg || 'Ошибка валидации';
+              // Улучшаем сообщения об ошибках
+              if (field === 'phone') {
+                if (msg.includes('regex') || msg.includes('pattern')) {
+                  return 'Неверный формат номера телефона. Используйте формат +7XXXXXXXXXX';
+                }
+                return `Номер телефона: ${msg}`;
+              }
+              if (field === 'password') {
+                if (msg.includes('min_length')) {
+                  return 'Пароль должен содержать минимум 8 символов';
+                }
+                return `Пароль: ${msg}`;
+              }
+              if (field === 'name') {
+                if (msg.includes('min_length')) {
+                  return 'Имя должно содержать минимум 2 символа';
+                }
+                return `Имя: ${msg}`;
+              }
+              if (field === 'role') {
+                if (msg.includes('regex') || msg.includes('pattern')) {
+                  return 'Неверная роль. Допустимые значения: parent, child';
+                }
+                return `Роль: ${msg}`;
+              }
+              return `${field}: ${msg}`;
             }).join(', ');
           } else {
+            // Строковое сообщение об ошибке (400, 500)
             errorMessage = data.detail;
           }
+        } else if (data.message) {
+          errorMessage = data.message;
+        } else if (data.error) {
+          errorMessage = data.error;
+        } else {
+          // Если нет стандартных полей, используем весь объект
+          errorMessage = JSON.stringify(data);
         }
       } catch (e) {
+        console.error('Ошибка при обработке ответа регистрации:', e);
+        // Если уже выброшена ошибка с сообщением, пробрасываем её
+        if (e.message && e.message !== 'Ошибка регистрации') {
+          throw e;
+        }
         errorMessage = `Ошибка ${response.status}: ${response.statusText}`;
       }
       throw new Error(errorMessage);
@@ -321,19 +409,30 @@ async function handleRegister(event) {
     
     // Согласно rules.md: access token хранится только в памяти
     apiClient.setAccessToken(data.access_token);
-    // localStorage.setItem('user_token', data.access_token); // Удалено: токены не хранятся в localStorage
-    // localStorage.setItem('user_role', data.user?.role || 'parent'); // Опционально, если нужно сохранить роль
+    console.log('✅ handleRegister: токен установлен в apiClient');
     
-    // Показываем приложение
-    showApp();
-    
-    // Перезагружаем данные
-    if (typeof loadData === 'function') {
-      loadData();
+    // Скрываем форму регистрации ПЕРЕД вызовом bootstrapAuth
+    const authModal = document.getElementById('auth-modal');
+    if (authModal) {
+      authModal.style.display = 'none';
+      console.log('✅ handleRegister: форма входа скрыта');
     }
     
-    // Обновляем имя в шапке если есть
-    updateHeaderName(data.user?.name);
+    // Используем bootstrapAuth для правильного редиректа по роли
+    if (typeof bootstrapAuth === 'function') {
+      console.log('🔄 handleRegister: вызываю bootstrapAuth...');
+      await bootstrapAuth();
+      console.log('✅ handleRegister: bootstrapAuth выполнен');
+    } else {
+      console.warn('⚠️ handleRegister: bootstrapAuth не найден, использую fallback');
+      // Fallback: редирект по роли напрямую
+      const role = data.user?.role;
+      if (role === 'parent' && typeof router !== 'undefined') {
+        router.navigate('/parent', true);
+      } else if (role === 'child' && typeof router !== 'undefined') {
+        router.navigate('/child', true);
+      }
+    }
     
   } catch (error) {
     console.error('Ошибка регистрации:', error);

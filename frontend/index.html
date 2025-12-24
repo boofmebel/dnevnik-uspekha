@@ -8,386 +8,20 @@
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="static/css/styles.css?v=8" />
   <link rel="stylesheet" href="static/css/auth.css?v=3" />
-  <link rel="stylesheet" href="static/css/admin.css?v=4" />
+  <script src="src/js/theme.js"></script>
   <script src="src/js/error-handler.js"></script>
   <script src="src/js/utils.js"></script>
   <script src="src/js/data.js"></script>
   <script src="src/js/ui.js"></script>
   <script src="src/js/api.js"></script>
   <script src="src/js/router.js"></script>
-  <script src="src/js/admin.js?v=2"></script>
 </head>
 <body>
 <!-- Контейнеры для разных маршрутов -->
-<div id="admin-content" style="display: none;" class="admin-body">
-  <!-- Матричный фон -->
-  <div id="matrix-background" class="matrix-background" style="display: none;"></div>
-  
-  <!-- Модальное окно входа -->
-  <div id="admin-login-modal" class="admin-login-modal" style="display: none;">
-    <div class="admin-login-content">
-      <div class="admin-login-header">
-        <h2>🔐 Вход в админ-панель</h2>
-        <button class="admin-login-close" onclick="closeAdminLogin()">&times;</button>
-      </div>
-      <form id="admin-login-form" onsubmit="handleAdminLogin(event)">
-        <div class="admin-form-group">
-          <label for="admin-login-phone">Номер телефона:</label>
-          <input type="tel" id="admin-login-phone" required placeholder="79059510009" value="79059510009" />
-        </div>
-        <div class="admin-form-group">
-          <label for="admin-login-password">Пароль:</label>
-          <input type="password" id="admin-login-password" required placeholder="Введите пароль" />
-        </div>
-        <div id="admin-login-error" class="admin-error-message" style="display: none;"></div>
-        <button type="submit" class="admin-btn admin-btn-primary" style="width: 100%; margin-top: 1rem;">
-          Войти
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Индикатор загрузки -->
-  <div id="admin-loading" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; color: #00ff00; display: flex; align-items: center; justify-content: center; z-index: 9999; font-size: 1.5rem; font-family: 'Courier New', monospace; text-shadow: 0 0 10px #00ff00;">
-    <div style="text-align: center;">
-      <div style="font-size: 3rem; margin-bottom: 1rem; text-shadow: 0 0 20px #00ff00;">🔐</div>
-      <div>ЗАГРУЗКА СИСТЕМЫ...</div>
-    </div>
-  </div>
-  
-  <!-- Шапка админки -->
-  <header class="admin-header" style="display: none;">
-    <div class="admin-header-content">
-      <div class="admin-header-left">
-        <h1>🔐 Админ-панель</h1>
-      </div>
-      <div class="admin-header-right">
-        <span id="admin-user-phone" class="admin-user-info"></span>
-        <button class="admin-logout-btn" onclick="adminLogout()">Выход</button>
-      </div>
-    </div>
-  </header>
-
-  <!-- Навигация -->
-  <nav class="admin-nav" style="display: none;">
-    <button class="nav-btn active" data-page="dashboard" onclick="showAdminPage('dashboard')">
-      📊 Dashboard
-    </button>
-    <button class="nav-btn" data-page="users" onclick="showAdminPage('users')">
-      👥 Пользователи
-    </button>
-    <button class="nav-btn" data-page="children" onclick="showAdminPage('children')">
-      👧 Дети
-    </button>
-    <button class="nav-btn" data-page="subscriptions" onclick="showAdminPage('subscriptions')">
-      💳 Подписки
-    </button>
-    <button class="nav-btn" data-page="notifications" onclick="showAdminPage('notifications')">
-      🔔 Уведомления
-    </button>
-  </nav>
-
-  <!-- Контент -->
-  <main class="admin-main" style="display: none;">
-    <!-- Dashboard -->
-    <div id="admin-page-dashboard" class="admin-page active">
-      <div class="admin-page-header">
-        <h2>📊 Статистика</h2>
-        <button class="admin-refresh-btn" onclick="loadAdminStats()">🔄 Обновить</button>
-      </div>
-
-      <!-- Карточки статистики -->
-      <div class="admin-stats-grid">
-        <div class="admin-stat-card">
-          <div class="stat-icon">👥</div>
-          <div class="stat-content">
-            <div class="stat-label">Всего пользователей</div>
-            <div class="stat-value" id="stat-total-users">-</div>
-          </div>
-        </div>
-        <div class="admin-stat-card">
-          <div class="stat-icon">👨‍👩‍👧</div>
-          <div class="stat-content">
-            <div class="stat-label">Родителей</div>
-            <div class="stat-value" id="stat-total-parents">-</div>
-          </div>
-        </div>
-        <div class="admin-stat-card">
-          <div class="stat-icon">👧</div>
-          <div class="stat-content">
-            <div class="stat-label">Детей</div>
-            <div class="stat-value" id="stat-total-children">-</div>
-          </div>
-        </div>
-        <div class="admin-stat-card">
-          <div class="stat-icon">💳</div>
-          <div class="stat-content">
-            <div class="stat-label">Активных подписок</div>
-            <div class="stat-value" id="stat-active-subscriptions">-</div>
-          </div>
-        </div>
-        <div class="admin-stat-card">
-          <div class="stat-icon">📋</div>
-          <div class="stat-content">
-            <div class="stat-label">Всего подписок</div>
-            <div class="stat-value" id="stat-total-subscriptions">-</div>
-          </div>
-        </div>
-        <div class="admin-stat-card">
-          <div class="stat-icon">💰</div>
-          <div class="stat-content">
-            <div class="stat-label">Запросов на возврат</div>
-            <div class="stat-value" id="stat-refund-requests">-</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Последние пользователи -->
-      <div class="admin-section">
-        <h3>👥 Последние пользователи</h3>
-        <div class="admin-table-container">
-          <table class="admin-table" id="recent-users-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Имя</th>
-                <th>Телефон</th>
-                <th>Роль</th>
-                <th>Родитель ID</th>
-                <th>Детей</th>
-                <th>Подписок</th>
-                <th>Дата регистрации</th>
-                <th>Дата обновления</th>
-                <th>Действия</th>
-              </tr>
-            </thead>
-            <tbody id="recent-users-tbody">
-              <tr><td colspan="10" class="loading">Загрузка...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Последние подписки -->
-      <div class="admin-section">
-        <h3>💳 Последние подписки</h3>
-        <div class="admin-table-container">
-          <table class="admin-table" id="recent-subscriptions-table">
-            <thead>
-              <tr>
-                <th>Пользователь</th>
-                <th>Начало</th>
-                <th>Окончание</th>
-                <th>Статус</th>
-                <th>Возврат</th>
-                <th>Действия</th>
-              </tr>
-            </thead>
-            <tbody id="recent-subscriptions-tbody">
-              <tr><td colspan="6" class="loading">Загрузка...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Пользователи -->
-    <div id="admin-page-users" class="admin-page">
-      <div class="admin-page-header">
-        <h2>👥 Пользователи</h2>
-        <div class="admin-filters">
-          <select id="users-role-filter" onchange="loadUsers()">
-            <option value="">Все роли</option>
-            <option value="parent">Родители</option>
-            <option value="child">Дети</option>
-            <option value="admin">Администраторы</option>
-          </select>
-          <input type="text" id="users-search" placeholder="Поиск по имени или телефону..." onkeyup="debounceSearch(loadUsers, 300)()" />
-        </div>
-      </div>
-      <div class="admin-table-container">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Имя</th>
-              <th>Телефон</th>
-              <th>Роль</th>
-              <th>Родитель ID</th>
-              <th>Детей</th>
-              <th>Подписок</th>
-              <th>Дата регистрации</th>
-              <th>Дата обновления</th>
-              <th>Действия</th>
-            </tr>
-          </thead>
-          <tbody id="users-tbody">
-            <tr><td colspan="10" class="loading">Загрузка...</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="admin-pagination">
-        <button onclick="changeUsersPage(-1)">◀ Предыдущая</button>
-        <span id="users-page-info">Страница 1</span>
-        <button onclick="changeUsersPage(1)">Следующая ▶</button>
-      </div>
-    </div>
-
-    <!-- Дети -->
-    <div id="admin-page-children" class="admin-page">
-      <div class="admin-page-header">
-        <h2>👧 Дети</h2>
-        <button class="admin-refresh-btn" onclick="loadChildren()">🔄 Обновить</button>
-      </div>
-      <div class="admin-table-container">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Имя</th>
-              <th>Родитель</th>
-              <th>Пол</th>
-              <th>Задач</th>
-              <th>Звёзд</th>
-              <th>Дата создания</th>
-            </tr>
-          </thead>
-          <tbody id="children-tbody">
-            <tr><td colspan="8" class="loading">Загрузка...</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="admin-pagination">
-        <button onclick="changeChildrenPage(-1)">◀ Предыдущая</button>
-        <span id="children-page-info">Страница 1</span>
-        <button onclick="changeChildrenPage(1)">Следующая ▶</button>
-      </div>
-    </div>
-
-    <!-- Подписки -->
-    <div id="admin-page-subscriptions" class="admin-page">
-      <div class="admin-page-header">
-        <h2>💳 Подписки</h2>
-        <div class="admin-filters">
-          <label>
-            <input type="checkbox" id="subscriptions-active-only" onchange="loadSubscriptions()" />
-            Только активные
-          </label>
-        </div>
-      </div>
-      <div class="admin-table-container">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Пользователь</th>
-              <th>Начало</th>
-              <th>Окончание</th>
-              <th>Статус</th>
-              <th>Возврат</th>
-              <th>Дата создания</th>
-            </tr>
-          </thead>
-          <tbody id="subscriptions-tbody">
-            <tr><td colspan="8" class="loading">Загрузка...</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="admin-pagination">
-        <button onclick="changeSubscriptionsPage(-1)">◀ Предыдущая</button>
-        <span id="subscriptions-page-info">Страница 1</span>
-        <button onclick="changeSubscriptionsPage(1)">Следующая ▶</button>
-      </div>
-    </div>
-
-    <!-- Уведомления -->
-    <div id="admin-page-notifications" class="admin-page">
-      <div class="admin-page-header">
-        <h2>🔔 Уведомления</h2>
-        <div class="admin-filters">
-          <select id="notifications-type-filter" onchange="loadNotifications()">
-            <option value="">Все типы</option>
-            <option value="subscription">Подписки</option>
-            <option value="refund">Возвраты</option>
-            <option value="complaint">Жалобы</option>
-            <option value="consent">Согласия</option>
-            <option value="system">Система</option>
-          </select>
-        </div>
-      </div>
-      <div class="admin-table-container">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Пользователь</th>
-              <th>Тип</th>
-              <th>Сообщение</th>
-              <th>Статус</th>
-              <th>Дата</th>
-            </tr>
-          </thead>
-          <tbody id="notifications-tbody">
-            <tr><td colspan="6" class="loading">Загрузка...</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="admin-pagination">
-        <button onclick="changeNotificationsPage(-1)">◀ Предыдущая</button>
-        <span id="notifications-page-info">Страница 1</span>
-        <button onclick="changeNotificationsPage(1)">Следующая ▶</button>
-      </div>
-    </div>
-  </main>
-
-  <!-- Модальное окно редактирования пользователя -->
-  <div id="edit-user-modal" class="admin-modal">
-    <div class="admin-modal-content">
-      <div class="admin-modal-header">
-        <h3>Редактировать пользователя</h3>
-        <button class="admin-modal-close" onclick="closeEditUserModal()">×</button>
-      </div>
-      <div class="admin-modal-body">
-        <form id="edit-user-form" onsubmit="saveUser(event)">
-          <input type="hidden" id="edit-user-id" />
-          <div class="admin-form-group">
-            <label>Имя пользователя:</label>
-            <input type="text" id="edit-user-name" placeholder="Введите имя" />
-          </div>
-          <div class="admin-form-group">
-            <label>Номер телефона:</label>
-            <input type="tel" id="edit-user-phone" placeholder="+7 (999) 123-45-67" />
-          </div>
-          <div class="admin-form-group">
-            <label>Роль:</label>
-            <select id="edit-user-role" required>
-              <option value="parent">Родитель</option>
-              <option value="child">Ребёнок</option>
-              <option value="admin">Администратор</option>
-            </select>
-          </div>
-          <div class="admin-form-group">
-            <label>ID Родителя (для детей):</label>
-            <input type="number" id="edit-user-parent-id" placeholder="Оставьте пустым, если это родитель" min="1" />
-            <small style="color: #888; font-size: 0.85rem; display: block; margin-top: 0.25rem;">Укажите ID родителя, если это ребёнок</small>
-          </div>
-          <div class="admin-form-actions">
-            <button type="button" class="admin-btn-secondary" onclick="closeEditUserModal()">Отмена</button>
-            <button type="submit" class="admin-btn-primary">Сохранить</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- Сообщения об ошибках -->
-  <div id="admin-error-message" class="admin-error-message" style="display: none;"></div>
-  <div id="admin-success-message" class="admin-success-message" style="display: none;"></div>
-</div>
 <div id="parent-content" style="display: none;"></div>
 <div id="child-content" style="display: none;"></div>
 <!-- Модальное окно входа/регистрации -->
-<div class="modal auth-modal" id="auth-modal" style="display: flex;">
+<div class="modal auth-modal" id="auth-modal" style="display: none;">
   <div class="modal-content auth-modal-content">
     <div class="auth-header">
       <h1>🌟 Дневник успеха</h1>
@@ -504,22 +138,27 @@
 <header>
   <div class="header-content">
     <div class="header-left">
-      <button class="profile-avatar" onclick="openProfileModal()" title="Профиль">
+      <button class="profile-avatar" onclick="openChildrenModal()" title="Управление детьми" id="parent-avatar-btn" style="position: relative;">
         <div class="avatar-circle" id="profile-avatar">👤</div>
+        <div class="add-child-indicator" title="Нажмите на аватар для управления детьми">+</div>
       </button>
     </div>
     <div class="header-center">
       <span class="header-title">Дневник успеха</span>
       <div class="header-name-row">
-        <span class="header-name" id="header-name"></span>
+        <span class="header-name" id="header-child-name" style="font-size: 14px; opacity: 0.9;"></span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+        <!-- Кнопка переключения темы -->
+        <div id="theme-toggle-container"></div>
+        <!-- Звезды -->
         <div class="header-stars" onclick="openStarsExchangeModal()">
           <span class="stars-count" id="header-stars-count">0</span>
           <span class="stars-icon">⭐</span>
         </div>
       </div>
-    </div>
-    <div class="header-right">
-      <!-- Пустое место для симметрии -->
     </div>
   </div>
 </header>
@@ -664,6 +303,16 @@
     </div>
   </div>
 
+  <!-- Дети -->
+  <div class="page" id="children">
+    <div class="card">
+      <h2>👶 Мои дети</h2>
+      <div id="children-list">
+        <!-- Список детей будет загружен через JS -->
+      </div>
+    </div>
+  </div>
+
   <!-- Правила -->
   <div class="page" id="rules">
     <div class="card">
@@ -686,6 +335,116 @@
         <p class="empty-state">Загрузка данных...</p>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Модальное окно добавления ребенка -->
+<div class="modal" id="add-child-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 10001; align-items: center; justify-content: center;">
+  <div class="modal-content" style="max-width: 500px; width: 90%; padding: 24px; background: white; border-radius: 16px; max-height: 90vh; overflow-y: auto;">
+    <h2 style="margin: 0 0 20px 0; text-align: center;">👶 Добавить ребенка</h2>
+    <form id="add-child-form" onsubmit="createChild(event)">
+      <!-- Аватар -->
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div id="child-avatar-preview" style="
+          width: 120px;
+          height: 120px;
+          border-radius: 50%;
+          margin: 0 auto 16px;
+          background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+          border: 3px solid var(--border-color);
+          cursor: pointer;
+          position: relative;
+          overflow: hidden;
+        " onclick="document.getElementById('child-avatar-input').click()">
+          <input type="file" id="child-avatar-input" accept="image/*" style="display: none;" onchange="onAvatarUpload(event)">
+          <div style="
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            padding: 8px;
+            font-size: 12px;
+            text-align: center;
+          ">Нажмите для загрузки фото</div>
+        </div>
+      </div>
+      
+      <!-- Имя -->
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label for="child-name" style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Имя ребенка</label>
+        <input type="text" id="child-name" required placeholder="Введите имя" style="
+          width: 100%;
+          padding: 12px 16px;
+          border: 2px solid var(--input-border);
+          border-radius: 12px;
+          font-size: 16px;
+          box-sizing: border-box;
+        ">
+      </div>
+      
+      <!-- Пол -->
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label for="child-gender" style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Пол</label>
+        <select id="child-gender" onchange="onGenderChange()" style="
+          width: 100%;
+          padding: 12px 16px;
+          border: 2px solid var(--input-border);
+          border-radius: 12px;
+          font-size: 16px;
+          box-sizing: border-box;
+          background: white;
+          color: #0f172a;
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          appearance: none;
+        ">
+          <option value="none" style="color: #0f172a; background: white;">Не указан</option>
+          <option value="boy" style="color: #0f172a; background: white;">Мальчик</option>
+          <option value="girl" style="color: #0f172a; background: white;">Девочка</option>
+        </select>
+      </div>
+      
+      <!-- Возраст -->
+      <div class="form-group" style="margin-bottom: 24px;">
+        <label for="child-age" style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Возраст</label>
+        <input type="number" id="child-age" min="0" max="18" placeholder="Введите возраст" style="
+          width: 100%;
+          padding: 12px 16px;
+          border: 2px solid var(--input-border);
+          border-radius: 12px;
+          font-size: 16px;
+          box-sizing: border-box;
+        ">
+      </div>
+      
+      <!-- Кнопки -->
+      <div style="display: flex; gap: 12px;">
+        <button type="button" onclick="closeAddChildModal()" style="
+          flex: 1;
+          padding: 14px;
+          border: 2px solid var(--border-color);
+          border-radius: 12px;
+          background: white;
+          color: var(--text-primary);
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+        ">Отмена</button>
+        <button type="submit" style="
+          flex: 1;
+          padding: 14px;
+          border: none;
+          border-radius: 12px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+        ">Сохранить</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -783,7 +542,7 @@
     </div>
     <div class="modal-body">
       <input type="text" id="new-rule-text" placeholder="Текст правила" />
-      <button class="submit-btn" onclick="addRule()">Добавить</button>
+      <button class="submit-btn" onclick="addFamilyRule()">Добавить</button>
     </div>
   </div>
 </div>
@@ -987,27 +746,30 @@
 </div>
 
 <script src="src/js/auth-user.js"></script>
-<script src="app.js"></script>
+<script src="src/js/app.js"></script>
 
 <!-- Инициализация роутера -->
 <script>
 // Загружаем обработчики маршрутов
 (async function() {
-  // Загружаем модули маршрутов
+  // Загружаем модули маршрутов (admin убран из product SPA)
   await Promise.all([
     loadScript('/src/js/routes/index.js'),
-    loadScript('/src/js/routes/admin.js'),
     loadScript('/src/js/routes/parent.js'),
     loadScript('/src/js/routes/child.js')
   ]);
   
-  // Регистрируем маршруты
+  // Регистрируем маршруты (только для product users)
   router.route('/', handleRootRoute);
-  router.route('/admin', handleAdminRoute);
   router.route('/parent', handleParentRoute);
   router.route('/child', handleChildRoute);
   
-  console.log('✅ Роутер инициализирован');
+  // /admin больше не поддерживается - админы используют /staff/login
+  
+  console.log('✅ Роутер инициализирован, маршруты зарегистрированы:', Object.keys(router.routes));
+  
+  // Теперь обрабатываем текущий маршрут ПОСЛЕ регистрации
+  router.handleRoute();
 })();
 
 // Вспомогательная функция для загрузки скриптов
@@ -1020,6 +782,14 @@ function loadScript(src) {
     document.body.appendChild(script);
   });
 }
+
+// Инициализация кнопки переключения темы
+document.addEventListener('DOMContentLoaded', () => {
+  const themeToggleContainer = document.getElementById('theme-toggle-container');
+  if (themeToggleContainer && window.themeManager) {
+    window.themeManager.createThemeToggle(themeToggleContainer);
+  }
+});
 </script>
 </div>
 </body>

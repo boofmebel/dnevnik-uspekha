@@ -6,7 +6,9 @@ import logging
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 from sqlalchemy.exc import OperationalError, DisconnectionError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,7 +17,7 @@ import asyncpg
 from core.config import settings
 from core.database import get_db
 from core.exceptions import setup_exception_handlers
-from routers import auth, users, children, tasks, stars, piggy, settings as settings_router, weekly_stats, diary, wishlist, legal, subscription, support, admin, parent
+from routers import auth, users, children, tasks, stars, piggy, settings as settings_router, weekly_stats, diary, wishlist, legal, subscription, support, admin, parent, staff
 
 # Настройка логирования (согласно rules.md: JSON логи)
 from core.logging_config import setup_logging
@@ -49,6 +51,27 @@ if not settings.DEBUG:
 # Настройка обработчиков исключений
 setup_exception_handlers(app)
 
+# Обработчик для HTTPException - всегда возвращает JSON
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """Обработчик HTTPException - всегда возвращает JSON"""
+    # Если detail - это список (для валидации), преобразуем в строку
+    detail = exc.detail
+    if isinstance(detail, list):
+        detail = "; ".join([str(d) for d in detail])
+    elif not isinstance(detail, str):
+        detail = str(detail) if detail else "Произошла ошибка"
+    
+    logger.error(f"HTTPException [{exc.status_code}]: {detail}")
+    
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "detail": detail,
+            "status_code": exc.status_code
+        }
+    )
+
 # Настройка rate limiting (согласно rules.md)
 from core.middleware.rate_limit import limiter, RateLimitExceeded, _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
@@ -60,12 +83,19 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 from core.middleware.csrf_middleware import CSRFMiddleware
 app.add_middleware(CSRFMiddleware)
 
-# Обработка ошибок подключения к БД
+# Обработка всех необработанных исключений
 @app.exception_handler(Exception)
-async def database_error_handler(request: Request, exc: Exception):
-    """Обработка ошибок подключения к базе данных"""
+async def global_exception_handler(request: Request, exc: Exception):
+    """Глобальный обработчик исключений - всегда возвращает JSON"""
+    # Если это HTTPException, пробрасываем его дальше (он обработается отдельным обработчиком)
+    if isinstance(exc, HTTPException):
+        raise exc
+    
     error_str = str(exc)
     error_type = type(exc).__name__
+    
+    # Логируем ошибку
+    logger.error(f"Необработанное исключение: {error_type}: {error_str}", exc_info=True)
     
     # Проверяем, является ли это ошибкой подключения к БД
     is_db_error = (
@@ -77,6 +107,7 @@ async def database_error_handler(request: Request, exc: Exception):
         "database" in error_str.lower()
     )
     
+    # Для админки при ошибке БД возвращаем пустой массив
     if is_db_error and "/api/admin" in str(request.url):
         logger.error(f"Ошибка подключения к БД в админке: {exc}", exc_info=True)
         return JSONResponse(
@@ -84,8 +115,21 @@ async def database_error_handler(request: Request, exc: Exception):
             content=[]
         )
     
-    # Для других ошибок пробрасываем дальше
-    raise exc
+    # Для всех остальных ошибок возвращаем JSON с деталями
+    # В проде не показываем детали ошибки, только в DEBUG режиме
+    if settings.DEBUG:
+        detail = f"{error_type}: {error_str}"
+    else:
+        detail = "Внутренняя ошибка сервера"
+    
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": detail,
+            "error": error_type,
+            "message": error_str if settings.DEBUG else "Произошла внутренняя ошибка сервера"
+        }
+    )
 
 # Подключение роутеров
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
@@ -103,6 +147,7 @@ app.include_router(subscription.router, prefix="/api/subscription", tags=["subsc
 app.include_router(support.router, prefix="/api/support", tags=["support"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 app.include_router(parent.router, prefix="/api/parent", tags=["parent"])
+app.include_router(staff.router, prefix="/api/staff", tags=["staff"])
 
 
 @app.get("/health")
@@ -127,10 +172,44 @@ async def ready_check(db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=503, detail="Database not ready")
 
 
+# Обслуживание статических файлов
+frontend_path = Path(__file__).parent.parent / "frontend"
+static_path = frontend_path / "static"
+if static_path.exists():
+    app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
+
+# Обслуживание статических файлов из src (JS, CSS)
+src_path = frontend_path / "src"
+if src_path.exists():
+    app.mount("/src", StaticFiles(directory=str(src_path)), name="src")
+
+# Обслуживание index.html для SPA маршрутов
 @app.get("/")
 async def root():
-    """Корневой endpoint"""
+    """Корневой endpoint - возвращает index.html для SPA"""
+    index_file = frontend_path / "index.html"
+    if index_file.exists():
+        return FileResponse(str(index_file))
     return {"message": "Дневник успеха API", "version": "1.0.0"}
+
+# Catch-all для SPA маршрутов (должен быть последним)
+@app.get("/{path:path}")
+async def serve_spa(path: str, request: Request):
+    """Catch-all для SPA маршрутов - возвращает index.html для всех не-API запросов"""
+    # Пропускаем API запросы
+    if path.startswith("api/") or path.startswith("health") or path.startswith("ready"):
+        raise HTTPException(status_code=404, detail="Not Found")
+    
+    # Пропускаем статические файлы
+    if path.startswith("static/") or path.startswith("src/"):
+        raise HTTPException(status_code=404, detail="Not Found")
+    
+    # Возвращаем index.html для всех остальных маршрутов
+    index_file = frontend_path / "index.html"
+    if index_file.exists():
+        return FileResponse(str(index_file))
+    
+    raise HTTPException(status_code=404, detail="Not Found")
 
 
 @app.get("/api/debug/token")

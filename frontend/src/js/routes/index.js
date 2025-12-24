@@ -1,48 +1,105 @@
 /**
- * Маршрут / (главная)
- * Определяет роль пользователя и редиректит
+ * Bootstrap авторизации
+ * Единая точка входа для проверки авторизации и роутинга по ролям
  * 
  * Безопасность: используем /api/auth/me вместо декодирования JWT на клиенте
  */
-async function handleRootRoute() {
-  console.log('🏠 Обработка главного маршрута...');
-  
-  // Проверяем токен
-  const token = apiClient.getAccessToken();
-  
+async function bootstrapAuth() {
+  let token = apiClient.getAccessToken();
+  console.log('🔍 bootstrapAuth: токен есть?', !!token);
+
+  // Если токена нет в памяти, пробуем восстановить из refresh token
   if (!token) {
-    // Нет токена - показываем форму входа/регистрации
-    console.log('❌ Токен не найден, показываем форму входа');
-    showAuthModal();
-    return;
+    console.log('⚠️ bootstrapAuth: токен отсутствует в памяти, пробую восстановить из refresh token...');
+    try {
+      const refreshed = await apiClient.refreshToken();
+      if (refreshed) {
+        console.log('✅ bootstrapAuth: токен восстановлен из refresh token');
+        token = refreshed;
+        apiClient.setAccessToken(refreshed);
+      } else {
+        console.log('⚠️ bootstrapAuth: не удалось восстановить токен, показываю форму входа');
+        if (typeof showAuthModal === 'function') {
+          showAuthModal();
+        } else {
+          // Fallback: показываем форму входа напрямую
+          const authModal = document.getElementById('auth-modal');
+          if (authModal) {
+            authModal.style.display = 'flex';
+          }
+        }
+        return;
+      }
+    } catch (error) {
+      console.error('❌ bootstrapAuth: ошибка при восстановлении токена:', error);
+      // Если не удалось восстановить - показываем форму входа
+      if (typeof showAuthModal === 'function') {
+        showAuthModal();
+      } else {
+        const authModal = document.getElementById('auth-modal');
+        if (authModal) {
+          authModal.style.display = 'flex';
+        }
+      }
+      return;
+    }
   }
-  
-  // Получаем информацию о пользователе с сервера (безопасно)
+
   try {
-    const userInfo = await apiClient.get('/auth/me');
-    const role = userInfo.role;
-    
-    console.log('👤 Роль пользователя:', role);
-    
-    // Редиректим в зависимости от роли
-    if (role === 'admin') {
-      router.navigate('/admin', true);
-    } else if (role === 'parent') {
+    console.log('📤 bootstrapAuth: запрашиваю /api/auth/me...');
+    const me = await apiClient.get('/auth/me');
+    console.log('✅ bootstrapAuth: /api/auth/me вернул:', me);
+
+    // Редирект по роли из backend
+    if (me.role === 'parent') {
+      console.log('🔄 bootstrapAuth: редирект на /parent');
       router.navigate('/parent', true);
-    } else if (role === 'child') {
+    } else if (me.role === 'child') {
+      console.log('🔄 bootstrapAuth: редирект на /child');
       router.navigate('/child', true);
+    } else if (me.role === 'admin' || me.role === 'support' || me.role === 'moderator') {
+      // Staff роли - редирект на staff панель
+      console.log('🔄 bootstrapAuth: редирект на /staff/dashboard');
+      window.location.href = '/staff/dashboard';
+      return;
     } else {
-      // Неизвестная роль - показываем форму входа
+      // Неизвестная роль - выход
+      console.warn('⚠️ bootstrapAuth: неизвестная роль:', me.role);
+      await apiClient.logout();
+      if (typeof showAuthModal === 'function') {
+        showAuthModal();
+      }
+    }
+  } catch (e) {
+    console.error('❌ bootstrapAuth: ошибка при проверке /api/auth/me:', e);
+    // Пробуем обновить токен
+    console.log('🔄 bootstrapAuth: пробую обновить токен...');
+    const refreshed = await apiClient.refreshToken();
+    if (refreshed) {
+      console.log('✅ bootstrapAuth: токен обновлён, повторяю проверку');
+      apiClient.setAccessToken(refreshed);
+      return bootstrapAuth();
+    }
+    // Если не удалось обновить - выход
+    console.error('❌ bootstrapAuth: не удалось обновить токен, показываю форму входа');
+    await apiClient.logout();
+    if (typeof showAuthModal === 'function') {
       showAuthModal();
     }
-  } catch (error) {
-    console.error('Ошибка получения информации о пользователе:', error);
-    // Ошибка - показываем форму входа
-    showAuthModal();
   }
 }
 
+/**
+ * Маршрут / (главная)
+ * Использует bootstrapAuth() для определения роли и редиректа
+ */
+async function handleRootRoute() {
+  console.log('🏠 Обработка главного маршрута...');
+  await bootstrapAuth();
+}
+
 window.handleRootRoute = handleRootRoute;
+window.bootstrapAuth = bootstrapAuth;
 
 
 

@@ -26,7 +26,7 @@ class RegisterRequest(BaseModel):
     phone: str = Field(..., description="Номер телефона в формате +7XXXXXXXXXX")
     name: str = Field(..., min_length=2, description="Имя пользователя (минимум 2 символа)")
     password: str = Field(..., min_length=8, description="Пароль минимум 8 символов")
-    role: str = Field(default="parent", pattern="^(parent|admin|child)$", description="Роль пользователя")
+    role: str = Field(default="parent", pattern="^(parent|child)$", description="Роль пользователя (admin больше не поддерживается)")
 
 
 class LoginResponse(BaseModel):
@@ -66,4 +66,10 @@ class AdminLoginRequest(BaseModel):
     """Запрос на вход админа по телефону"""
     phone: str = Field(..., description="Номер телефона (79059510009)")
     password: str = Field(..., description="Пароль администратора")
+
+
+class StaffLoginRequest(BaseModel):
+    """Запрос на вход staff пользователя по телефону"""
+    phone: str = Field(..., description="Номер телефона staff пользователя")
+    password: str = Field(..., description="Пароль staff пользователя")
 

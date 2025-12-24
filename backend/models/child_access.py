@@ -16,7 +16,9 @@ class ChildAccess(Base):
     child_id = Column(Integer, ForeignKey("children.id"), nullable=False, unique=True, index=True)
     pin_hash = Column(String, nullable=True)  # Зашифрованный PIN (bcrypt), NULL до первого входа
     qr_token = Column(String, unique=True, nullable=True, index=True)  # Уникальный токен для QR-кода
-    qr_token_expires_at = Column(DateTime(timezone=True), nullable=True)  # Срок действия QR-токена
+    qr_token_expires_at = Column(DateTime(timezone=True), nullable=True)  # Срок действия QR-токена (общий срок)
+    qr_token_valid_from = Column(DateTime(timezone=True), nullable=True)  # Время начала действия QR-токена (для временного окна)
+    qr_token_used_at = Column(DateTime(timezone=True), nullable=True)  # Время первого использования (одноразовое использование)
     is_active = Column(Boolean, default=True, nullable=False)  # Можно отключить доступ
     failed_attempts = Column(Integer, default=0, nullable=False)  # Количество неудачных попыток
     locked_until = Column(DateTime(timezone=True), nullable=True)  # Блокировка до определённого времени

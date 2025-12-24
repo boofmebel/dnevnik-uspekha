@@ -289,16 +289,15 @@ window.initAdminPanel = initAdminPanel;
 
 // Инициализация админки при загрузке страницы (для прямого доступа к admin.html)
 document.addEventListener('DOMContentLoaded', async () => {
-  // Проверяем, что мы на странице админки (либо через класс, либо через контейнер)
-  const adminContent = document.getElementById('admin-content');
-  const isAdminPage = document.body.classList.contains('admin-body') || adminContent;
+  // Проверяем, что мы на странице админки (только через класс body)
+  const isAdminPage = document.body.classList.contains('admin-body');
   
   if (!isAdminPage) {
-    console.log('Это не страница админки, пропускаем инициализацию');
+    // Это не админ-страница, не инициализируем админку
     return;
   }
   
-  // Если есть контейнер admin-content, используем функцию инициализации
+  // Если это админ-страница и есть контейнер admin-content, используем функцию инициализации
   if (adminContent) {
     await initAdminPanel();
     return;
@@ -984,8 +983,8 @@ async function adminLogout() {
   } catch (error) {
     console.error('Ошибка выхода:', error);
   }
-  // Согласно rules.md: токены не хранятся в localStorage
-  apiClient.setAccessToken(null);
+      // Согласно rules.md: токены не хранятся в localStorage
+      apiClient.setAccessToken(null);
   adminState.currentUser = null;
   
   // Скрываем админку
