@@ -43,21 +43,32 @@ class ChildAccessRepository:
         
         now = datetime.now(timezone.utc)
         
+        # Логирование для отладки
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Проверка QR-токена: token={qr_token[:20]}..., now={now}, used_at={access.qr_token_used_at}, expires_at={access.qr_token_expires_at}, valid_from={access.qr_token_valid_from}")
+        
         # Проверка: токен не должен быть использован (одноразовое использование)
         if access.qr_token_used_at is not None:
+            logger.warning(f"QR-токен уже использован: used_at={access.qr_token_used_at}")
             return None
         
         # Проверка общего срока действия
         if access.qr_token_expires_at:
             if now > access.qr_token_expires_at:
+                logger.warning(f"QR-токен истек по общему сроку: expires_at={access.qr_token_expires_at}, now={now}")
                 return None
         
         # Проверка временного окна (1 час с момента генерации)
         if access.qr_token_valid_from:
             time_since_generation = now - access.qr_token_valid_from
-            if time_since_generation.total_seconds() > 3600:  # 1 час = 3600 секунд
+            seconds_since = time_since_generation.total_seconds()
+            logger.info(f"Время с момента генерации: {seconds_since} секунд ({seconds_since/3600:.2f} часов)")
+            if seconds_since > 3600:  # 1 час = 3600 секунд
+                logger.warning(f"QR-токен истек по временному окну: valid_from={access.qr_token_valid_from}, now={now}, seconds={seconds_since}")
                 return None
         
+        logger.info(f"QR-токен валиден, доступ разрешен")
         return access
     
     async def create(self, access_data: dict) -> ChildAccess:
