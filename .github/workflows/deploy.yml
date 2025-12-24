@@ -64,18 +64,30 @@ jobs:
             
             echo "✅ Деплой завершен успешно!"
             
-            # Опционально: перезапуск веб-сервера
-            # Раскомментируйте нужные строки:
+            # Перезапуск веб-сервера
+            echo "🔄 Перезапускаем сервисы..."
             
+            # Пробуем разные варианты перезапуска
             # Для systemd:
-            # sudo systemctl reload nginx || true
-            # sudo systemctl restart uwsgi || true
+            if systemctl list-units --type=service | grep -q "dnevnik"; then
+              echo "📦 Найден systemd сервис, перезапускаем..."
+              sudo systemctl reload nginx || true
+              sudo systemctl restart dnevnik-uspekha || sudo systemctl restart dnevnik || true
+            fi
             
             # Для PM2:
-            # pm2 restart dnevnik-uspekha || true
+            if command -v pm2 &> /dev/null; then
+              echo "📦 Найден PM2, перезапускаем..."
+              pm2 restart dnevnik-uspekha || pm2 restart all || true
+            fi
             
-            # Для Docker:
-            # docker-compose restart || true
+            # Для uvicorn/gunicorn через systemd:
+            if systemctl list-units --type=service | grep -q "uvicorn\|gunicorn"; then
+              echo "📦 Найден uvicorn/gunicorn сервис, перезапускаем..."
+              sudo systemctl restart uvicorn || sudo systemctl restart gunicorn || true
+            fi
+            
+            echo "✅ Перезапуск завершен!"
 
 
 
