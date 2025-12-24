@@ -1,0 +1,72 @@
+﻿2025-12-24T16:32:52.0658879Z ##[group]Run actions/checkout@v4
+2025-12-24T16:32:52.0659739Z with:
+2025-12-24T16:32:52.0660280Z   repository: boofmebel/dnevnik-uspekha
+2025-12-24T16:32:52.0661059Z   token: ***
+2025-12-24T16:32:52.0661536Z   ssh-strict: true
+2025-12-24T16:32:52.0662008Z   ssh-user: git
+2025-12-24T16:32:52.0662494Z   persist-credentials: true
+2025-12-24T16:32:52.0662997Z   clean: true
+2025-12-24T16:32:52.0663463Z   sparse-checkout-cone-mode: true
+2025-12-24T16:32:52.0663981Z   fetch-depth: 1
+2025-12-24T16:32:52.0664607Z   fetch-tags: false
+2025-12-24T16:32:52.0665065Z   show-progress: true
+2025-12-24T16:32:52.0665531Z   lfs: false
+2025-12-24T16:32:52.0665967Z   submodules: false
+2025-12-24T16:32:52.0666428Z   set-safe-directory: true
+2025-12-24T16:32:52.0667178Z ##[endgroup]
+2025-12-24T16:32:52.1733096Z Syncing repository: boofmebel/dnevnik-uspekha
+2025-12-24T16:32:52.1735051Z ##[group]Getting Git version info
+2025-12-24T16:32:52.1735861Z Working directory is '/home/runner/work/dnevnik-uspekha/dnevnik-uspekha'
+2025-12-24T16:32:52.1737050Z [command]/usr/bin/git version
+2025-12-24T16:32:52.1752949Z git version 2.52.0
+2025-12-24T16:32:52.1779177Z ##[endgroup]
+2025-12-24T16:32:52.1792388Z Temporarily overriding HOME='/home/runner/work/_temp/b8e6090e-708a-4482-a352-46a05ec41f95' before making global git config changes
+2025-12-24T16:32:52.1793634Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-24T16:32:52.1804501Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/dnevnik-uspekha/dnevnik-uspekha
+2025-12-24T16:32:52.1840282Z Deleting the contents of '/home/runner/work/dnevnik-uspekha/dnevnik-uspekha'
+2025-12-24T16:32:52.1843726Z ##[group]Initializing the repository
+2025-12-24T16:32:52.1847861Z [command]/usr/bin/git init /home/runner/work/dnevnik-uspekha/dnevnik-uspekha
+2025-12-24T16:32:52.1940482Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-12-24T16:32:52.1941780Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2025-12-24T16:32:52.1942962Z hint: to use in all of your new repositories, which will suppress this warning,
+2025-12-24T16:32:52.1943988Z hint: call:
+2025-12-24T16:32:52.1944891Z hint:
+2025-12-24T16:32:52.1945471Z hint: 	git config --global init.defaultBranch <name>
+2025-12-24T16:32:52.1946056Z hint:
+2025-12-24T16:32:52.1946652Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-12-24T16:32:52.1947505Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-12-24T16:32:52.1948175Z hint:
+2025-12-24T16:32:52.1948628Z hint: 	git branch -m <name>
+2025-12-24T16:32:52.1949358Z hint:
+2025-12-24T16:32:52.1950353Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-12-24T16:32:52.1951319Z Initialized empty Git repository in /home/runner/work/dnevnik-uspekha/dnevnik-uspekha/.git/
+2025-12-24T16:32:52.1955011Z [command]/usr/bin/git remote add origin https://github.com/boofmebel/dnevnik-uspekha
+2025-12-24T16:32:52.1987503Z ##[endgroup]
+2025-12-24T16:32:52.1988351Z ##[group]Disabling automatic garbage collection
+2025-12-24T16:32:52.1991625Z [command]/usr/bin/git config --local gc.auto 0
+2025-12-24T16:32:52.2018456Z ##[endgroup]
+2025-12-24T16:32:52.2019241Z ##[group]Setting up auth
+2025-12-24T16:32:52.2025174Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-12-24T16:32:52.2056213Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-12-24T16:32:52.2384587Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-24T16:32:52.2412422Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-12-24T16:32:52.2629084Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-24T16:32:52.2657680Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2025-12-24T16:32:52.2882077Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-12-24T16:32:52.2914830Z ##[endgroup]
+2025-12-24T16:32:52.2915737Z ##[group]Fetching the repository
+2025-12-24T16:32:52.2922066Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +8e4d17d57a54cefa0accc41dc99183e7fe1d1bb0:refs/remotes/origin/main
+2025-12-24T16:32:52.5986634Z From https://github.com/boofmebel/dnevnik-uspekha
+2025-12-24T16:32:52.5989262Z  * [new ref]         8e4d17d57a54cefa0accc41dc99183e7fe1d1bb0 -> origin/main
+2025-12-24T16:32:52.6020664Z ##[endgroup]
+2025-12-24T16:32:52.6021743Z ##[group]Determining the checkout info
+2025-12-24T16:32:52.6023216Z ##[endgroup]
+2025-12-24T16:32:52.6028644Z [command]/usr/bin/git sparse-checkout disable
+2025-12-24T16:32:52.6069265Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-12-24T16:32:52.6096217Z ##[group]Checking out the ref
+2025-12-24T16:32:52.6100781Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2025-12-24T16:32:52.6264694Z Switched to a new branch 'main'
+2025-12-24T16:32:52.6267823Z branch 'main' set up to track 'origin/main'.
+2025-12-24T16:32:52.6275097Z ##[endgroup]
+2025-12-24T16:32:52.6311356Z [command]/usr/bin/git log -1 --format=%H
+2025-12-24T16:32:52.6333764Z 8e4d17d57a54cefa0accc41dc99183e7fe1d1bb0

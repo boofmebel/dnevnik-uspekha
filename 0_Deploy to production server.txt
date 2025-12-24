@@ -1,0 +1,564 @@
+﻿2025-12-24T16:32:49.7375740Z Current runner version: '2.330.0'
+2025-12-24T16:32:49.7414517Z ##[group]Runner Image Provisioner
+2025-12-24T16:32:49.7416853Z Hosted Compute Agent
+2025-12-24T16:32:49.7418853Z Version: 20251211.462
+2025-12-24T16:32:49.7420875Z Commit: 6cbad8c2bb55d58165063d031ccabf57e2d2db61
+2025-12-24T16:32:49.7424488Z Build Date: 2025-12-11T16:28:49Z
+2025-12-24T16:32:49.7426892Z Worker ID: {569d4079-9a6d-4cbe-af68-1c3c321639f3}
+2025-12-24T16:32:49.7429257Z ##[endgroup]
+2025-12-24T16:32:49.7431255Z ##[group]Operating System
+2025-12-24T16:32:49.7433194Z Ubuntu
+2025-12-24T16:32:49.7435203Z 24.04.3
+2025-12-24T16:32:49.7436770Z LTS
+2025-12-24T16:32:49.7438577Z ##[endgroup]
+2025-12-24T16:32:49.7440473Z ##[group]Runner Image
+2025-12-24T16:32:49.7442390Z Image: ubuntu-24.04
+2025-12-24T16:32:49.7444583Z Version: 20251215.174.1
+2025-12-24T16:32:49.7447613Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20251215.174/images/ubuntu/Ubuntu2404-Readme.md
+2025-12-24T16:32:49.7451623Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20251215.174
+2025-12-24T16:32:49.7454767Z ##[endgroup]
+2025-12-24T16:32:49.7458346Z ##[group]GITHUB_TOKEN Permissions
+2025-12-24T16:32:49.7462221Z Contents: read
+2025-12-24T16:32:49.7464433Z Metadata: read
+2025-12-24T16:32:49.7466411Z Packages: read
+2025-12-24T16:32:49.7468171Z ##[endgroup]
+2025-12-24T16:32:49.7472295Z Secret source: Actions
+2025-12-24T16:32:49.7474764Z Prepare workflow directory
+2025-12-24T16:32:49.7961096Z Prepare all required actions
+2025-12-24T16:32:49.8019283Z Getting action download info
+2025-12-24T16:32:50.0630161Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2025-12-24T16:32:50.1558594Z Download action repository 'appleboy/ssh-action@v1.0.3' (SHA:029f5b4aeeeb58fdfe1410a5d17f967dacf36262)
+2025-12-24T16:32:50.5277040Z Complete job name: Deploy to production server
+2025-12-24T16:32:50.5705862Z ##[group]Build container for action use: '/home/runner/work/_actions/appleboy/ssh-action/v1.0.3/Dockerfile'.
+2025-12-24T16:32:50.5757130Z ##[command]/usr/bin/docker build -t 909405:0916cc95cf0d4037865fe280aacdce82 -f "/home/runner/work/_actions/appleboy/ssh-action/v1.0.3/Dockerfile" "/home/runner/work/_actions/appleboy/ssh-action/v1.0.3"
+2025-12-24T16:32:51.1826107Z #0 building with "default" instance using docker driver
+2025-12-24T16:32:51.1827159Z 
+2025-12-24T16:32:51.1827793Z #1 [internal] load build definition from Dockerfile
+2025-12-24T16:32:51.1829161Z #1 transferring dockerfile: 149B done
+2025-12-24T16:32:51.1830378Z #1 DONE 0.0s
+2025-12-24T16:32:51.1830956Z 
+2025-12-24T16:32:51.1831639Z #2 [internal] load metadata for ghcr.io/appleboy/drone-ssh:1.7.3
+2025-12-24T16:32:51.3579033Z #2 DONE 0.3s
+2025-12-24T16:32:51.4796649Z 
+2025-12-24T16:32:51.4798616Z #3 [internal] load .dockerignore
+2025-12-24T16:32:51.4801863Z #3 transferring context: 2B done
+2025-12-24T16:32:51.4805208Z #3 DONE 0.0s
+2025-12-24T16:32:51.4806767Z 
+2025-12-24T16:32:51.4807870Z #4 [internal] load build context
+2025-12-24T16:32:51.4810681Z #4 transferring context: 108B done
+2025-12-24T16:32:51.4813430Z #4 DONE 0.0s
+2025-12-24T16:32:51.4814952Z 
+2025-12-24T16:32:51.4817384Z #5 [1/2] FROM ghcr.io/appleboy/drone-ssh:1.7.3@sha256:179cbd253771007f2ebcaf7a3860afe059207351de1f3378efafac93bd310158
+2025-12-24T16:32:51.4822581Z #5 resolve ghcr.io/appleboy/drone-ssh:1.7.3@sha256:179cbd253771007f2ebcaf7a3860afe059207351de1f3378efafac93bd310158 0.0s done
+2025-12-24T16:32:51.4827585Z #5 extracting sha256:1207c741d8c9b028d98c4006013f9de959da3c55f85b91ed5e4583438a0112ca
+2025-12-24T16:32:51.4832840Z #5 sha256:47353a6f9201a145b687290e5ae0278ac269faf4bb61bee3e9246c37a8d74277 0B / 2.44MB 0.1s
+2025-12-24T16:32:51.4838565Z #5 sha256:179cbd253771007f2ebcaf7a3860afe059207351de1f3378efafac93bd310158 2.38kB / 2.38kB done
+2025-12-24T16:32:51.4844977Z #5 sha256:1a52f94820e830bc9734623deb03bbafa6a248fba19cdc2e5605c70d90d91441 1.24kB / 1.24kB done
+2025-12-24T16:32:51.4851589Z #5 sha256:c4781b8d012b16b6c7468dc9104fad0a63f2a8815b2af8b7176bb544253ea8c7 3.86kB / 3.86kB done
+2025-12-24T16:32:51.4858872Z #5 sha256:1207c741d8c9b028d98c4006013f9de959da3c55f85b91ed5e4583438a0112ca 3.38MB / 3.38MB 0.1s done
+2025-12-24T16:32:51.4866066Z #5 sha256:654aaee5654be60f81172539ecd74485cf8bbe2e9137bab0d429862c31c676f6 284.83kB / 284.83kB 0.1s done
+2025-12-24T16:32:51.4872804Z #5 sha256:7e20f48a19643465f486f59127b8f4e0f4114bedc8bd5260fb4f92d5fda95f1c 1.20kB / 1.20kB 0.1s done
+2025-12-24T16:32:51.4880467Z #5 sha256:066e5b821e26d8313055e0314c056e6c297847bcf963e5df10e7aa03107f***46 125B / 125B 0.1s done
+2025-12-24T16:32:51.5896279Z #5 extracting sha256:1207c741d8c9b028d98c4006013f9de959da3c55f85b91ed5e4583438a0112ca 0.1s done
+2025-12-24T16:32:51.5902330Z #5 sha256:47353a6f9201a145b687290e5ae0278ac269faf4bb61bee3e9246c37a8d74277 2.44MB / 2.44MB 0.1s done
+2025-12-24T16:32:51.5908283Z #5 extracting sha256:654aaee5654be60f81172539ecd74485cf8bbe2e9137bab0d429862c31c676f6 0.0s done
+2025-12-24T16:32:51.6948165Z #5 extracting sha256:7e20f48a19643465f486f59127b8f4e0f4114bedc8bd5260fb4f92d5fda95f1c done
+2025-12-24T16:32:51.6951922Z #5 extracting sha256:066e5b821e26d8313055e0314c056e6c297847bcf963e5df10e7aa03107f***46 done
+2025-12-24T16:32:51.6953645Z #5 extracting sha256:47353a6f9201a145b687290e5ae0278ac269faf4bb61bee3e9246c37a8d74277
+2025-12-24T16:32:51.9134375Z #5 extracting sha256:47353a6f9201a145b687290e5ae0278ac269faf4bb61bee3e9246c37a8d74277 0.0s done
+2025-12-24T16:32:51.9135528Z #5 DONE 0.4s
+2025-12-24T16:32:51.9136006Z 
+2025-12-24T16:32:51.9136286Z #6 [2/2] COPY entrypoint.sh /bin/entrypoint.sh
+2025-12-24T16:32:51.9136974Z #6 DONE 0.0s
+2025-12-24T16:32:51.9137327Z 
+2025-12-24T16:32:51.9137548Z #7 exporting to image
+2025-12-24T16:32:51.9138133Z #7 exporting layers
+2025-12-24T16:32:52.0041187Z #7 exporting layers 0.2s done
+2025-12-24T16:32:52.0234938Z #7 writing image sha256:b4053fa0a713596776b854807eab881a054d5fcaed3fda58bf132583ece25b5e done
+2025-12-24T16:32:52.0237351Z #7 naming to docker.io/library/909405:0916cc95cf0d4037865fe280aacdce82 done
+2025-12-24T16:32:52.0238510Z #7 DONE 0.2s
+2025-12-24T16:32:52.0298599Z ##[endgroup]
+2025-12-24T16:32:52.0658897Z ##[group]Run actions/checkout@v4
+2025-12-24T16:32:52.0659760Z with:
+2025-12-24T16:32:52.0660284Z   repository: boofmebel/dnevnik-uspekha
+2025-12-24T16:32:52.0661064Z   token: ***
+2025-12-24T16:32:52.0661540Z   ssh-strict: true
+2025-12-24T16:32:52.0662011Z   ssh-user: git
+2025-12-24T16:32:52.0662497Z   persist-credentials: true
+2025-12-24T16:32:52.0663000Z   clean: true
+2025-12-24T16:32:52.0663466Z   sparse-checkout-cone-mode: true
+2025-12-24T16:32:52.0663985Z   fetch-depth: 1
+2025-12-24T16:32:52.0664611Z   fetch-tags: false
+2025-12-24T16:32:52.0665068Z   show-progress: true
+2025-12-24T16:32:52.0665535Z   lfs: false
+2025-12-24T16:32:52.0665970Z   submodules: false
+2025-12-24T16:32:52.0666432Z   set-safe-directory: true
+2025-12-24T16:32:52.0667184Z ##[endgroup]
+2025-12-24T16:32:52.1733127Z Syncing repository: boofmebel/dnevnik-uspekha
+2025-12-24T16:32:52.1735064Z ##[group]Getting Git version info
+2025-12-24T16:32:52.1735953Z Working directory is '/home/runner/work/dnevnik-uspekha/dnevnik-uspekha'
+2025-12-24T16:32:52.1737055Z [command]/usr/bin/git version
+2025-12-24T16:32:52.1752964Z git version 2.52.0
+2025-12-24T16:32:52.1779191Z ##[endgroup]
+2025-12-24T16:32:52.1792404Z Temporarily overriding HOME='/home/runner/work/_temp/b8e6090e-708a-4482-a352-46a05ec41f95' before making global git config changes
+2025-12-24T16:32:52.1793639Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-24T16:32:52.1804518Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/dnevnik-uspekha/dnevnik-uspekha
+2025-12-24T16:32:52.1840299Z Deleting the contents of '/home/runner/work/dnevnik-uspekha/dnevnik-uspekha'
+2025-12-24T16:32:52.1843740Z ##[group]Initializing the repository
+2025-12-24T16:32:52.1847872Z [command]/usr/bin/git init /home/runner/work/dnevnik-uspekha/dnevnik-uspekha
+2025-12-24T16:32:52.1940505Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-12-24T16:32:52.1941811Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2025-12-24T16:32:52.1942966Z hint: to use in all of your new repositories, which will suppress this warning,
+2025-12-24T16:32:52.1943998Z hint: call:
+2025-12-24T16:32:52.1944897Z hint:
+2025-12-24T16:32:52.1945475Z hint: 	git config --global init.defaultBranch <name>
+2025-12-24T16:32:52.1946065Z hint:
+2025-12-24T16:32:52.1946656Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-12-24T16:32:52.1947509Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-12-24T16:32:52.1948178Z hint:
+2025-12-24T16:32:52.1948631Z hint: 	git branch -m <name>
+2025-12-24T16:32:52.1949367Z hint:
+2025-12-24T16:32:52.1950359Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-12-24T16:32:52.1951323Z Initialized empty Git repository in /home/runner/work/dnevnik-uspekha/dnevnik-uspekha/.git/
+2025-12-24T16:32:52.1955045Z [command]/usr/bin/git remote add origin https://github.com/boofmebel/dnevnik-uspekha
+2025-12-24T16:32:52.1987517Z ##[endgroup]
+2025-12-24T16:32:52.1988354Z ##[group]Disabling automatic garbage collection
+2025-12-24T16:32:52.1991637Z [command]/usr/bin/git config --local gc.auto 0
+2025-12-24T16:32:52.2018469Z ##[endgroup]
+2025-12-24T16:32:52.2019245Z ##[group]Setting up auth
+2025-12-24T16:32:52.2025192Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-12-24T16:32:52.2056235Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-12-24T16:32:52.2384607Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-24T16:32:52.2412440Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-12-24T16:32:52.2629422Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-24T16:32:52.2657698Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2025-12-24T16:32:52.2882095Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-12-24T16:32:52.2914845Z ##[endgroup]
+2025-12-24T16:32:52.2915742Z ##[group]Fetching the repository
+2025-12-24T16:32:52.2922077Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +8e4d17d57a54cefa0accc41dc99183e7fe1d1bb0:refs/remotes/origin/main
+2025-12-24T16:32:52.5986666Z From https://github.com/boofmebel/dnevnik-uspekha
+2025-12-24T16:32:52.5989276Z  * [new ref]         8e4d17d57a54cefa0accc41dc99183e7fe1d1bb0 -> origin/main
+2025-12-24T16:32:52.6020678Z ##[endgroup]
+2025-12-24T16:32:52.6021752Z ##[group]Determining the checkout info
+2025-12-24T16:32:52.6023227Z ##[endgroup]
+2025-12-24T16:32:52.6028688Z [command]/usr/bin/git sparse-checkout disable
+2025-12-24T16:32:52.6069282Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-12-24T16:32:52.6096237Z ##[group]Checking out the ref
+2025-12-24T16:32:52.6100795Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2025-12-24T16:32:52.6264709Z Switched to a new branch 'main'
+2025-12-24T16:32:52.6267836Z branch 'main' set up to track 'origin/main'.
+2025-12-24T16:32:52.6275110Z ##[endgroup]
+2025-12-24T16:32:52.6311370Z [command]/usr/bin/git log -1 --format=%H
+2025-12-24T16:32:52.6333789Z 8e4d17d57a54cefa0accc41dc99183e7fe1d1bb0
+2025-12-24T16:32:52.6637938Z ##[group]Run appleboy/ssh-action@v1.0.3
+2025-12-24T16:32:52.6638415Z with:
+2025-12-24T16:32:52.6638805Z   host: ***
+2025-12-24T16:32:52.6639156Z   username: ***
+2025-12-24T16:32:52.6654091Z   key: ***
+2025-12-24T16:32:52.6654617Z   port: ***
+2025-12-24T16:32:52.6654958Z   timeout: 10m
+2025-12-24T16:32:52.6679428Z   script: set -e  # Остановка при ошибке
+
+echo "🚀 Начинаем деплой..."
+echo "📋 Проверка переменных окружения..."
+if [ -z "***" ]; then
+  echo "❌ ОШИБКА: SERVER_HOST не настроен!"
+  exit 1
+fi
+if [ -z "***" ]; then
+  echo "❌ ОШИБКА: SERVER_USER не настроен!"
+  exit 1
+fi
+if [ -z "***" ]; then
+  echo "❌ ОШИБКА: SERVER_SSH_KEY не настроен!"
+  exit 1
+fi
+if [ -z "***" ]; then
+  echo "❌ ОШИБКА: SERVER_PATH не настроен!"
+  exit 1
+fi
+echo "✅ Все Secrets настроены"
+echo "SERVER_HOST: ***"
+echo "SERVER_USER: ***"
+echo "SERVER_PATH: ***"
+echo "SERVER_PORT: ***"
+
+# Переходим в директорию проекта
+echo "📁 Переход в директорию: ***"
+if [ ! -d "***" ]; then
+  echo "❌ ОШИБКА: Директория *** не существует!"
+  echo "Создаём директорию..."
+  mkdir -p "***"
+fi
+cd ***
+echo "✅ Текущая директория: $(pwd)"
+
+# Обновляем код из GitHub
+echo "📥 Получаем последние изменения..."
+git fetch origin
+git reset --hard origin/main
+
+# Создаем/пересоздаем виртуальное окружение
+echo "🐍 Создаём виртуальное окружение..."
+rm -rf backend/venv
+python3 -m venv backend/venv || python3 -m venv --system-site-packages backend/venv || {
+  echo "⚠️  Не удалось создать venv, используем python3 -m pip"
+  PIP_CMD="python3 -m pip"
+  PYTHON_CMD="python3"
+}
+
+# Проверяем, что venv создан и работает
+if [ -d "backend/venv" ] && [ -x "backend/venv/bin/pip" ]; then
+  PIP_CMD="backend/venv/bin/pip"
+  PYTHON_CMD="backend/venv/bin/python"
+  echo "✅ Виртуальное окружение создано"
+else
+  echo "⚠️  venv не работает, используем python3 -m pip"
+  PIP_CMD="python3 -m pip"
+  PYTHON_CMD="python3"
+fi
+
+# Устанавливаем зависимости (если нужно)
+if [ -f "backend/requirements.txt" ]; then
+  echo "📦 Устанавливаем зависимости..."
+  $PIP_CMD install -q --upgrade pip || true
+  $PIP_CMD install -q -r backend/requirements.txt || $PIP_CMD install -q --break-system-packages -r backend/requirements.txt
+fi
+
+# Применяем миграции к продакшн БД
+if [ -f "backend/alembic.ini" ]; then
+  echo "🗄️  Применяем миграции к продакшн БД (dnevnik_prod)..."
+  cd backend
+  # Загружаем переменные окружения из .env файла, если он существует
+  if [ -f ".env" ]; then
+    set -a
+    source .env
+    set +a
+  fi
+  # Убеждаемся, что используется продакшн БД
+  export DATABASE_URL=$(echo ${DATABASE_URL:-} | sed 's/dnevnik_test/dnevnik_prod/g' | sed 's/dnevnik_uspekha/dnevnik_prod/g')
+  if [ -z "$DATABASE_URL" ]; then
+    echo "⚠️  DATABASE_URL не установлен, пропускаем миграции"
+  else
+    # Используем Python из venv для запуска alembic
+    if [ -f "../venv/bin/alembic" ]; then
+      ../venv/bin/alembic upgrade head || echo "⚠️  Миграции не применены (возможно, БД не настроена)"
+    elif [ -f "venv/bin/alembic" ]; then
+      venv/bin/alembic upgrade head || echo "⚠️  Миграции не применены (возможно, БД не настроена)"
+    else
+      $PYTHON_CMD -m alembic upgrade head || echo "⚠️  Миграции не применены (возможно, БД не настроена)"
+    fi
+  fi
+  cd ..
+fi
+
+echo "✅ Деплой завершен успешно!"
+echo "🌐 Продакшн окружение доступно на: http://***:3000"
+
+# Перезапуск веб-сервера
+echo "🔄 Перезапускаем сервисы..."
+
+# Пробуем разные варианты перезапуска
+# Для systemd:
+if systemctl list-units --type=service | grep -q "dnevnik"; then
+  echo "📦 Найден systemd сервис, перезапускаем..."
+  sudo systemctl reload nginx || true
+  sudo systemctl restart dnevnik-uspekha || sudo systemctl restart dnevnik || true
+fi
+
+# Для PM2:
+if command -v pm2 &> /dev/null; then
+  echo "📦 Найден PM2, перезапускаем..."
+  pm2 restart dnevnik-uspekha || pm2 restart all || true
+fi
+
+# Для uvicorn/gunicorn через systemd:
+if systemctl list-units --type=service | grep -q "uvicorn\|gunicorn"; then
+  echo "📦 Найден uvicorn/gunicorn сервис, перезапускаем..."
+  sudo systemctl restart uvicorn || sudo systemctl restart gunicorn || true
+fi
+
+echo "✅ Перезапуск завершен!"
+
+2025-12-24T16:32:52.6688281Z   command_timeout: 10m
+2025-12-24T16:32:52.6688701Z   proxy_port: ***
+2025-12-24T16:32:52.6689056Z   proxy_timeout: 30s
+2025-12-24T16:32:52.6689422Z ##[endgroup]
+2025-12-24T16:32:52.6826031Z ##[command]/usr/bin/docker run --name cc95cf0d4037865fe280aacdce82_768cbd --label 909405 --workdir /github/workspace --rm -e "INPUT_HOST" -e "INPUT_USERNAME" -e "INPUT_KEY" -e "INPUT_PORT" -e "INPUT_TIMEOUT" -e "INPUT_SCRIPT" -e "INPUT_PASSPHRASE" -e "INPUT_PASSWORD" -e "INPUT_SYNC" -e "INPUT_USE_INSECURE_CIPHER" -e "INPUT_CIPHER" -e "INPUT_COMMAND_TIMEOUT" -e "INPUT_KEY_PATH" -e "INPUT_FINGERPRINT" -e "INPUT_PROXY_HOST" -e "INPUT_PROXY_PORT" -e "INPUT_PROXY_USERNAME" -e "INPUT_PROXY_PASSWORD" -e "INPUT_PROXY_PASSPHRASE" -e "INPUT_PROXY_TIMEOUT" -e "INPUT_PROXY_KEY" -e "INPUT_PROXY_KEY_PATH" -e "INPUT_PROXY_FINGERPRINT" -e "INPUT_PROXY_CIPHER" -e "INPUT_PROXY_USE_INSECURE_CIPHER" -e "INPUT_SCRIPT_STOP" -e "INPUT_ENVS" -e "INPUT_ENVS_FORMAT" -e "INPUT_DEBUG" -e "INPUT_ALLENVS" -e "INPUT_REQUEST_PTY" -e "HOME" -e "GITHUB_JOB" -e "GITHUB_REF" -e "GITHUB_SHA" -e "GITHUB_REPOSITORY" -e "GITHUB_REPOSITORY_OWNER" -e "GITHUB_REPOSITORY_OWNER_ID" -e "GITHUB_RUN_ID" -e "GITHUB_RUN_NUMBER" -e "GITHUB_RETENTION_DAYS" -e "GITHUB_RUN_ATTEMPT" -e "GITHUB_ACTOR_ID" -e "GITHUB_ACTOR" -e "GITHUB_WORKFLOW" -e "GITHUB_HEAD_REF" -e "GITHUB_BASE_REF" -e "GITHUB_EVENT_NAME" -e "GITHUB_SERVER_URL" -e "GITHUB_API_URL" -e "GITHUB_GRAPHQL_URL" -e "GITHUB_REF_NAME" -e "GITHUB_REF_PROTECTED" -e "GITHUB_REF_TYPE" -e "GITHUB_WORKFLOW_REF" -e "GITHUB_WORKFLOW_SHA" -e "GITHUB_REPOSITORY_ID" -e "GITHUB_TRIGGERING_ACTOR" -e "GITHUB_WORKSPACE" -e "GITHUB_ACTION" -e "GITHUB_EVENT_PATH" -e "GITHUB_ACTION_REPOSITORY" -e "GITHUB_ACTION_REF" -e "GITHUB_PATH" -e "GITHUB_ENV" -e "GITHUB_STEP_SUMMARY" -e "GITHUB_STATE" -e "GITHUB_OUTPUT" -e "RUNNER_OS" -e "RUNNER_ARCH" -e "RUNNER_NAME" -e "RUNNER_ENVIRONMENT" -e "RUNNER_TOOL_CACHE" -e "RUNNER_TEMP" -e "RUNNER_WORKSPACE" -e "ACTIONS_RUNTIME_URL" -e "ACTIONS_RUNTIME_TOKEN" -e "ACTIONS_CACHE_URL" -e "ACTIONS_RESULTS_URL" -e GITHUB_ACTIONS=true -e CI=true -v "/var/run/docker.sock":"/var/run/docker.sock" -v "/home/runner/work/_temp":"/github/runner_temp" -v "/home/runner/work/_temp/_github_home":"/github/home" -v "/home/runner/work/_temp/_github_workflow":"/github/workflow" -v "/home/runner/work/_temp/_runner_file_commands":"/github/file_commands" -v "/home/runner/work/dnevnik-uspekha/dnevnik-uspekha":"/github/workspace" 909405:0916cc95cf0d4037865fe280aacdce82
+2025-12-24T16:32:52.8657710Z ======CMD======
+2025-12-24T16:32:52.8658776Z set -e  # Остановка при ошибке
+2025-12-24T16:32:52.8659202Z 
+2025-12-24T16:32:52.8659638Z echo "🚀 Начинаем деплой..."
+2025-12-24T16:32:52.8660454Z echo "📋 Проверка переменных окружения..."
+2025-12-24T16:32:52.8661377Z if [ -z "***" ]; then
+2025-12-24T16:32:52.8662154Z   echo "❌ ОШИБКА: SERVER_HOST не настроен!"
+2025-12-24T16:32:52.8662896Z   exit 1
+2025-12-24T16:32:52.8663511Z fi
+2025-12-24T16:32:52.8664350Z if [ -z "***" ]; then
+2025-12-24T16:32:52.8665580Z   echo "❌ ОШИБКА: SERVER_USER не настроен!"
+2025-12-24T16:32:52.8666237Z   exit 1
+2025-12-24T16:32:52.8666734Z fi
+2025-12-24T16:32:52.8667294Z if [ -z "***
+2025-12-24T16:32:52.8667960Z ***
+2025-12-24T16:32:52.8668592Z ***
+2025-12-24T16:32:52.8669241Z ***
+2025-12-24T16:32:52.8669878Z ***
+2025-12-24T16:32:52.8670699Z ***
+2025-12-24T16:32:52.8671349Z ***
+2025-12-24T16:32:52.8671988Z ***
+2025-12-24T16:32:52.8672630Z ***
+2025-12-24T16:32:52.8673258Z ***
+2025-12-24T16:32:52.8673935Z ***
+2025-12-24T16:32:52.8674786Z ***
+2025-12-24T16:32:52.8675405Z ***
+2025-12-24T16:32:52.8675928Z ***
+2025-12-24T16:32:52.8676463Z ***
+2025-12-24T16:32:52.8677083Z ***
+2025-12-24T16:32:52.8677712Z ***
+2025-12-24T16:32:52.8678332Z ***
+2025-12-24T16:32:52.8678959Z ***
+2025-12-24T16:32:52.8679587Z ***
+2025-12-24T16:32:52.8680174Z ***
+2025-12-24T16:32:52.8680787Z ***
+2025-12-24T16:32:52.8681399Z ***
+2025-12-24T16:32:52.8682016Z ***
+2025-12-24T16:32:52.8682642Z ***
+2025-12-24T16:32:52.8683244Z ***
+2025-12-24T16:32:52.8683886Z ***
+2025-12-24T16:32:52.8684769Z ***
+2025-12-24T16:32:52.8685401Z ***
+2025-12-24T16:32:52.8686034Z ***
+2025-12-24T16:32:52.8686673Z ***
+2025-12-24T16:32:52.8687277Z ***
+2025-12-24T16:32:52.8687883Z ***
+2025-12-24T16:32:52.8688533Z ***
+2025-12-24T16:32:52.8689175Z ***
+2025-12-24T16:32:52.8689827Z ***
+2025-12-24T16:32:52.8690480Z ***
+2025-12-24T16:32:52.8691140Z ***
+2025-12-24T16:32:52.8691776Z ***
+2025-12-24T16:32:52.8692411Z ***
+2025-12-24T16:32:52.8693062Z ***
+2025-12-24T16:32:52.8693702Z ***
+2025-12-24T16:32:52.8694444Z ***
+2025-12-24T16:32:52.8695131Z ***
+2025-12-24T16:32:52.8695796Z ***
+2025-12-24T16:32:52.8696450Z ***
+2025-12-24T16:32:52.8697067Z ***
+2025-12-24T16:32:52.8697718Z ***
+2025-12-24T16:32:52.8698184Z ***
+2025-12-24T16:32:52.8698704Z ***" ]; then
+2025-12-24T16:32:52.8699312Z   echo "❌ ОШИБКА: SERVER_SSH_KEY не настроен!"
+2025-12-24T16:32:52.8699904Z   exit 1
+2025-12-24T16:32:52.8700378Z fi
+2025-12-24T16:32:52.8700943Z if [ -z "***" ]; then
+2025-12-24T16:32:52.8701637Z   echo "❌ ОШИБКА: SERVER_PATH не настроен!"
+2025-12-24T16:32:52.8702219Z   exit 1
+2025-12-24T16:32:52.8702697Z fi
+2025-12-24T16:32:52.8703216Z echo "✅ Все Secrets настроены"
+2025-12-24T16:32:52.8703789Z echo "SERVER_HOST: ***"
+2025-12-24T16:32:52.8704456Z echo "SERVER_USER: ***"
+2025-12-24T16:32:52.8705046Z echo "SERVER_PATH: ***"
+2025-12-24T16:32:52.8705598Z echo "SERVER_PORT: ***"
+2025-12-24T16:32:52.8705807Z 
+2025-12-24T16:32:52.8706165Z # Переходим в директорию проекта
+2025-12-24T16:32:52.8706815Z echo "📁 Переход в директорию: ***"
+2025-12-24T16:32:52.8707507Z if [ ! -d "***" ]; then
+2025-12-24T16:32:52.8708155Z   echo "❌ ОШИБКА: Директория *** не существует!"
+2025-12-24T16:32:52.8708803Z   echo "Создаём директорию..."
+2025-12-24T16:32:52.8709405Z   mkdir -p "***"
+2025-12-24T16:32:52.8709923Z fi
+2025-12-24T16:32:52.8710426Z cd ***
+2025-12-24T16:32:52.8711009Z echo "✅ Текущая директория: $(pwd)"
+2025-12-24T16:32:52.8711259Z 
+2025-12-24T16:32:52.8711611Z # Обновляем код из GitHub
+2025-12-24T16:32:52.8712229Z echo "📥 Получаем последние изменения..."
+2025-12-24T16:32:52.8712829Z git fetch origin
+2025-12-24T16:32:52.8713335Z git reset --hard origin/main
+2025-12-24T16:32:52.8713560Z 
+2025-12-24T16:32:52.8713926Z # Создаем/пересоздаем виртуальное окружение
+2025-12-24T16:32:52.8714841Z echo "🐍 Создаём виртуальное окружение..."
+2025-12-24T16:32:52.8715423Z rm -rf backend/venv
+2025-12-24T16:32:52.8716146Z python3 -m venv backend/venv || python3 -m venv --system-site-packages backend/venv || {
+2025-12-24T16:32:52.8716979Z   echo "⚠️  Не удалось создать venv, используем python3 -m pip"
+2025-12-24T16:32:52.8717614Z   PIP_CMD="python3 -m pip"
+2025-12-24T16:32:52.8718157Z   PYTHON_CMD="python3"
+2025-12-24T16:32:52.8718658Z }
+2025-12-24T16:32:52.8718838Z 
+2025-12-24T16:32:52.8719188Z # Проверяем, что venv создан и работает
+2025-12-24T16:32:52.8719820Z if [ -d "backend/venv" ] && [ -x "backend/venv/bin/pip" ]; then
+2025-12-24T16:32:52.8720471Z   PIP_CMD="backend/venv/bin/pip"
+2025-12-24T16:32:52.8721015Z   PYTHON_CMD="backend/venv/bin/python"
+2025-12-24T16:32:52.8721826Z   echo "✅ Виртуальное окружение создано"
+2025-12-24T16:32:52.8722378Z else
+2025-12-24T16:32:52.8722971Z   echo "⚠️  venv не работает, используем python3 -m pip"
+2025-12-24T16:32:52.8723604Z   PIP_CMD="python3 -m pip"
+2025-12-24T16:32:52.8724402Z   PYTHON_CMD="python3"
+2025-12-24T16:32:52.8724936Z fi
+2025-12-24T16:32:52.8725280Z 
+2025-12-24T16:32:52.8725641Z # Устанавливаем зависимости (если нужно)
+2025-12-24T16:32:52.8726249Z if [ -f "backend/requirements.txt" ]; then
+2025-12-24T16:32:52.8726891Z   echo "📦 Устанавливаем зависимости..."
+2025-12-24T16:32:52.8727495Z   $PIP_CMD install -q --upgrade pip || true
+2025-12-24T16:32:52.8728407Z   $PIP_CMD install -q -r backend/requirements.txt || $PIP_CMD install -q --break-system-packages -r backend/requirements.txt
+2025-12-24T16:32:52.8729218Z fi
+2025-12-24T16:32:52.8729386Z 
+2025-12-24T16:32:52.8729744Z # Применяем миграции к продакшн БД
+2025-12-24T16:32:52.8730311Z if [ -f "backend/alembic.ini" ]; then
+2025-12-24T16:32:52.8730995Z   echo "🗄️  Применяем миграции к продакшн БД (dnevnik_prod)..."
+2025-12-24T16:32:52.8731624Z   cd backend
+2025-12-24T16:32:52.8732197Z   # Загружаем переменные окружения из .env файла, если он существует
+2025-12-24T16:32:52.8732819Z   if [ -f ".env" ]; then
+2025-12-24T16:32:52.8733333Z     set -a
+2025-12-24T16:32:52.8733823Z     source .env
+2025-12-24T16:32:52.8734456Z     set +a
+2025-12-24T16:32:52.8734953Z   fi
+2025-12-24T16:32:52.8735487Z   # Убеждаемся, что используется продакшн БД
+2025-12-24T16:32:52.8736385Z   export DATABASE_URL=$(echo ${DATABASE_URL:-} | sed 's/dnevnik_test/dnevnik_prod/g' | sed 's/dnevnik_uspekha/dnevnik_prod/g')
+2025-12-24T16:32:52.8737226Z   if [ -z "$DATABASE_URL" ]; then
+2025-12-24T16:32:52.8737879Z     echo "⚠️  DATABASE_URL не установлен, пропускаем миграции"
+2025-12-24T16:32:52.8738488Z   else
+2025-12-24T16:32:52.8739045Z     # Используем Python из venv для запуска alembic
+2025-12-24T16:32:52.8739659Z     if [ -f "../venv/bin/alembic" ]; then
+2025-12-24T16:32:52.8740466Z       ../venv/bin/alembic upgrade head || echo "⚠️  Миграции не применены (возможно, БД не настроена)"
+2025-12-24T16:32:52.8741213Z     elif [ -f "venv/bin/alembic" ]; then
+2025-12-24T16:32:52.8741982Z       venv/bin/alembic upgrade head || echo "⚠️  Миграции не применены (возможно, БД не настроена)"
+2025-12-24T16:32:52.8742677Z     else
+2025-12-24T16:32:52.8743397Z       $PYTHON_CMD -m alembic upgrade head || echo "⚠️  Миграции не применены (возможно, БД не настроена)"
+2025-12-24T16:32:52.8744115Z     fi
+2025-12-24T16:32:52.8744696Z   fi
+2025-12-24T16:32:52.8745171Z   cd ..
+2025-12-24T16:32:52.8745645Z fi
+2025-12-24T16:32:52.8745818Z 
+2025-12-24T16:32:52.8746178Z echo "✅ Деплой завершен успешно!"
+2025-12-24T16:32:52.8746879Z echo "🌐 Продакшн окружение доступно на: http://***:3000"
+2025-12-24T16:32:52.8747188Z 
+2025-12-24T16:32:52.8747567Z # Перезапуск веб-сервера
+2025-12-24T16:32:52.8748135Z echo "🔄 Перезапускаем сервисы..."
+2025-12-24T16:32:52.8748371Z 
+2025-12-24T16:32:52.8748894Z # Пробуем разные варианты перезапуска
+2025-12-24T16:32:52.8749493Z # Для systemd:
+2025-12-24T16:32:52.8750125Z if systemctl list-units --type=service | grep -q "dnevnik"; then
+2025-12-24T16:32:52.8750848Z   echo "📦 Найден systemd сервис, перезапускаем..."
+2025-12-24T16:32:52.8751459Z   sudo systemctl reload nginx || true
+2025-12-24T16:32:52.8752189Z   sudo systemctl restart dnevnik-uspekha || sudo systemctl restart dnevnik || true
+2025-12-24T16:32:52.8753022Z fi
+2025-12-24T16:32:52.8753196Z 
+2025-12-24T16:32:52.8753527Z # Для PM2:
+2025-12-24T16:32:52.8754055Z if command -v pm2 &> /dev/null; then
+2025-12-24T16:32:52.8754783Z   echo "📦 Найден PM2, перезапускаем..."
+2025-12-24T16:32:52.8755434Z   pm2 restart dnevnik-uspekha || pm2 restart all || true
+2025-12-24T16:32:52.8756033Z fi
+2025-12-24T16:32:52.8756204Z 
+2025-12-24T16:32:52.8756565Z # Для uvicorn/gunicorn через systemd:
+2025-12-24T16:32:52.8757276Z if systemctl list-units --type=service | grep -q "uvicorn\|gunicorn"; then
+2025-12-24T16:32:52.8758082Z   echo "📦 Найден uvicorn/gunicorn сервис, перезапускаем..."
+2025-12-24T16:32:52.8758825Z   sudo systemctl restart uvicorn || sudo systemctl restart gunicorn || true
+2025-12-24T16:32:52.8759517Z fi
+2025-12-24T16:32:52.8759688Z 
+2025-12-24T16:32:52.8760050Z echo "✅ Перезапуск завершен!"
+2025-12-24T16:32:52.8760275Z 
+2025-12-24T16:32:52.8760582Z ======END======
+2025-12-24T16:32:54.7577773Z out: 🚀 Начинаем деплой...
+2025-12-24T16:32:54.7578861Z out: 📋 Проверка переменных окружения...
+2025-12-24T16:32:54.7579735Z out: ✅ Все Secrets настроены
+2025-12-24T16:32:54.7581445Z out: SERVER_HOST: ***
+2025-12-24T16:32:54.7582398Z out: SERVER_USER: ***
+2025-12-24T16:32:54.7583201Z out: SERVER_PATH: ***
+2025-12-24T16:32:54.7583832Z out: SERVER_PORT: ***
+2025-12-24T16:32:54.7584912Z out: 📁 Переход в директорию: ***
+2025-12-24T16:32:54.7585587Z out: ✅ Текущая директория: ***
+2025-12-24T16:32:54.7586205Z out: 📥 Получаем последние изменения...
+2025-12-24T16:32:55.3599154Z err: From https://github.com/boofmebel/dnevnik-uspekha
+2025-12-24T16:32:55.3600328Z err:    2d25aa4..8e4d17d  main       -> origin/main
+2025-12-24T16:32:55.3684956Z out: HEAD is now at 8e4d17d fix: всегда пересоздавать venv для избежания проблем с архитектурой
+2025-12-24T16:32:55.3686244Z out: 🐍 Создаём виртуальное окружение...
+2025-12-24T16:32:58.0010529Z out: ✅ Виртуальное окружение создано
+2025-12-24T16:32:58.0011488Z out: 📦 Устанавливаем зависимости...
+2025-12-24T16:33:09.9342233Z out: 🗄️  Применяем миграции к продакшн БД (dnevnik_prod)...
+2025-12-24T16:33:10.4180670Z err: ***/backend/core/config.py:63: UserWarning: Ошибка загрузки настроек: error parsing value for field "ALLOWED_ORIGINS" from source "EnvSettingsSource". Проверьте .env файл.
+2025-12-24T16:33:10.4183023Z err:   warnings.warn(f"Ошибка загрузки настроек: {e}. Проверьте .env файл.")
+2025-12-24T16:33:10.4184616Z err: Traceback (most recent call last):
+2025-12-24T16:33:10.4186467Z err:   File "***/backend/venv/lib/python3.12/site-packages/pydantic_settings/sources.py", line 252, in __call__
+2025-12-24T16:33:10.4188072Z err:     field_value = self.prepare_field_value(field_name, field, field_value, value_is_complex)
+2025-12-24T16:33:10.4189340Z err:                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-24T16:33:10.4191074Z err:   File "***/backend/venv/lib/python3.12/site-packages/pydantic_settings/sources.py", line 435, in prepare_field_value
+2025-12-24T16:33:10.4192520Z err:     raise e
+2025-12-24T16:33:10.4194019Z err:   File "***/backend/venv/lib/python3.12/site-packages/pydantic_settings/sources.py", line 432, in prepare_field_value
+2025-12-24T16:33:10.4195264Z err:     value = self.decode_complex_value(field_name, field, value)
+2025-12-24T16:33:10.4196000Z err:             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-24T16:33:10.4197115Z err:   File "***/backend/venv/lib/python3.12/site-packages/pydantic_settings/sources.py", line 103, in decode_complex_value
+2025-12-24T16:33:10.4198195Z err:     return json.loads(value)
+2025-12-24T16:33:10.4199299Z err:            ^^^^^^^^^^^^^^^^^
+2025-12-24T16:33:10.4200261Z err:   File "/usr/lib/python3.12/json/__init__.py", line 346, in loads
+2025-12-24T16:33:10.4201362Z err:     return _default_decoder.decode(s)
+2025-12-24T16:33:10.4202269Z err:            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-24T16:33:10.4203303Z err:   File "/usr/lib/python3.12/json/decoder.py", line 337, in decode
+2025-12-24T16:33:10.4205080Z err:     obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+2025-12-24T16:33:10.4206111Z err:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-24T16:33:10.4207271Z err:   File "/usr/lib/python3.12/json/decoder.py", line 355, in raw_decode
+2025-12-24T16:33:10.5560377Z err:     raise JSONDecodeError("Expecting value", s, err.value) from None
+2025-12-24T16:33:10.5561951Z err: json.decoder.JSONDecodeError: Expecting value: line 1 column 2 (char 1)
+2025-12-24T16:33:10.5563418Z err: The above exception was the direct cause of the following exception:
+2025-12-24T16:33:10.5565051Z out: ⚠️  Миграции не применены (возможно, БД не настроена)
+2025-12-24T16:33:10.5566075Z err: Traceback (most recent call last):
+2025-12-24T16:33:10.5567455Z err:   File "***/backend/venv/bin/alembic", line 7, in <module>
+2025-12-24T16:33:10.5568698Z out: ✅ Деплой завершен успешно!
+2025-12-24T16:33:10.5569757Z out: 🌐 Продакшн окружение доступно на: http://***:3000
+2025-12-24T16:33:10.5570710Z err:     sys.exit(main())
+2025-12-24T16:33:10.5571344Z err:              ^^^^^^
+2025-12-24T16:33:10.5572574Z err:   File "***/backend/venv/lib/python3.12/site-packages/alembic/config.py", line 630, in main
+2025-12-24T16:33:10.5573843Z err:     CommandLine(prog=prog).main(argv=argv)
+2025-12-24T16:33:10.5575518Z err:   File "***/backend/venv/lib/python3.12/site-packages/alembic/config.py", line 624, in main
+2025-12-24T16:33:10.5577322Z err:     self.run_cmd(cfg, options)
+2025-12-24T16:33:10.5580262Z err:   File "***/backend/venv/lib/python3.12/site-packages/alembic/config.py", line 601, in run_cmd
+2025-12-24T16:33:10.5581963Z out: 🔄 Перезапускаем сервисы...
+2025-12-24T16:33:10.5583292Z out: 📦 Найден systemd сервис, перезапускаем...
+2025-12-24T16:33:10.5584784Z out: ✅ Перезапуск завершен!
+2025-12-24T16:33:10.5646150Z err:     fn(
+2025-12-24T16:33:10.5647533Z err:   File "***/backend/venv/lib/python3.12/site-packages/alembic/command.py", line 398, in upgrade
+2025-12-24T16:33:10.5648667Z err:     script.run_env()
+2025-12-24T16:33:10.5649892Z err:   File "***/backend/venv/lib/python3.12/site-packages/alembic/script/base.py", line 579, in run_env
+2025-12-24T16:33:10.5651009Z err:     util.load_python_file(self.dir, "env.py")
+2025-12-24T16:33:10.5652369Z err:   File "***/backend/venv/lib/python3.12/site-packages/alembic/util/pyfiles.py", line 93, in load_python_file
+2025-12-24T16:33:10.5653431Z err:     module = load_module_py(module_id, path)
+2025-12-24T16:33:10.5653898Z err:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-24T16:33:10.5654930Z err:   File "***/backend/venv/lib/python3.12/site-packages/alembic/util/pyfiles.py", line 109, in load_module_py
+2025-12-24T16:33:10.5655670Z err:     spec.loader.exec_module(module)  # type: ignore
+2025-12-24T16:33:10.5656152Z err:     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-24T16:33:10.5656701Z err:   File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+2025-12-24T16:33:10.5657395Z err:   File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+2025-12-24T16:33:10.5658179Z err:   File "***/backend/migrations/env.py", line 13, in <module>
+2025-12-24T16:33:10.5658704Z err:     from core.config import settings
+2025-12-24T16:33:10.5659322Z err:   File "***/backend/core/config.py", line 66, in <module>
+2025-12-24T16:33:10.5659823Z err:     settings = Settings(
+2025-12-24T16:33:10.5660214Z err:                ^^^^^^^^^
+2025-12-24T16:33:10.5660954Z err:   File "***/backend/venv/lib/python3.12/site-packages/pydantic_settings/main.py", line 72, in __init__
+2025-12-24T16:33:10.5661649Z err:     **__pydantic_self__._settings_build_values(
+2025-12-24T16:33:10.5662342Z err:       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-24T16:33:10.5663183Z err:   File "***/backend/venv/lib/python3.12/site-packages/pydantic_settings/main.py", line 160, in _settings_build_values
+2025-12-24T16:33:10.5663978Z err:     return deep_update(*reversed([source() for source in sources]))
+2025-12-24T16:33:10.5664703Z err:                                   ^^^^^^^^
+2025-12-24T16:33:10.5665668Z err:   File "***/backend/venv/lib/python3.12/site-packages/pydantic_settings/sources.py", line 254, in __call__
+2025-12-24T16:33:10.5666465Z err:     raise SettingsError(
+2025-12-24T16:33:10.5667182Z err: pydantic_settings.sources.SettingsError: error parsing value for field "ALLOWED_ORIGINS" from source "EnvSettingsSource"
+2025-12-24T16:33:10.5668084Z err: Failed to restart dnevnik-uspekha.service: Unit dnevnik-uspekha.service not found.
+2025-12-24T16:33:10.5668793Z err: Failed to restart dnevnik.service: Unit dnevnik.service not found.
+2025-12-24T16:33:10.5669345Z ==============================================
+2025-12-24T16:33:10.5670380Z ✅ Successfully executed commands to all host.
+2025-12-24T16:33:10.5670900Z ==============================================
+2025-12-24T16:33:10.6376442Z Post job cleanup.
+2025-12-24T16:33:10.7312060Z [command]/usr/bin/git version
+2025-12-24T16:33:10.7347788Z git version 2.52.0
+2025-12-24T16:33:10.7390736Z Temporarily overriding HOME='/home/runner/work/_temp/34014640-f89d-4c7b-824a-fa2042c9e09c' before making global git config changes
+2025-12-24T16:33:10.7391872Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-24T16:33:10.7403550Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/dnevnik-uspekha/dnevnik-uspekha
+2025-12-24T16:33:10.7437919Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-12-24T16:33:10.7469698Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-12-24T16:33:10.7699283Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-24T16:33:10.7722692Z http.https://github.com/.extraheader
+2025-12-24T16:33:10.7739847Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-12-24T16:33:10.7774762Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-12-24T16:33:10.8016527Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-24T16:33:10.8052709Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2025-12-24T16:33:10.8441285Z Cleaning up orphan processes

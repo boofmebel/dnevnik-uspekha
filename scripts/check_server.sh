@@ -1,81 +1,30 @@
 #!/bin/bash
+# Скрипт для проверки сервера через SSH
 
-# Скрипт для проверки существующего сервера
-# Использование: ./scripts/check_server.sh
+SERVER_HOST="${SERVER_HOST:-89.104.74.123}"
+SERVER_USER="${SERVER_USER:-root}"
+SERVER_PATH="${SERVER_PATH:-/var/www/dnevnik-uspekha}"
 
-set -e
-
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-SERVER_IP="89.104.74.123"
-
-echo -e "${BLUE}🔍 Проверка сервера $SERVER_IP${NC}"
+echo "🔍 Проверка сервера..."
 echo ""
 
-# Проверка доступности
-echo -e "${YELLOW}1. Проверка доступности сервера...${NC}"
-if ping -c 1 -W 2 "$SERVER_IP" &> /dev/null; then
-    echo -e "${GREEN}✅ Сервер доступен${NC}"
-else
-    echo -e "${RED}❌ Сервер недоступен${NC}"
-    exit 1
-fi
-
-# Проверка HTTP
-echo ""
-echo -e "${YELLOW}2. Проверка HTTP...${NC}"
-HTTP_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "http://$SERVER_IP" 2>/dev/null || echo "000")
-if [ "$HTTP_RESPONSE" != "000" ]; then
-    echo -e "${GREEN}✅ HTTP отвечает (код: $HTTP_RESPONSE)${NC}"
-    echo -e "${BLUE}   Содержимое:${NC}"
-    curl -s "http://$SERVER_IP" | head -20
-else
-    echo -e "${RED}❌ HTTP не отвечает${NC}"
-fi
-
-# Проверка SSH
-echo ""
-echo -e "${YELLOW}3. Проверка SSH доступа...${NC}"
-echo -e "${BLUE}   Попробуйте подключиться:${NC}"
-echo "   ssh root@$SERVER_IP"
-echo "   или"
-echo "   ssh deploy@$SERVER_IP"
-echo ""
-
-# Проверка известных SSH ключей
-if [ -f ~/.ssh/id_rsa ] || [ -f ~/.ssh/id_ed25519 ]; then
-    echo -e "${YELLOW}4. Попытка подключения с существующими ключами...${NC}"
-    
-    # Пробуем разные пользователи
-    for USER in root deploy ubuntu admin; do
-        echo -e "${BLUE}   Пробую: $USER@$SERVER_IP${NC}"
-        if ssh -o ConnectTimeout=3 -o StrictHostKeyChecking=no "$USER@$SERVER_IP" "echo 'Успешно'; hostname; pwd" 2>/dev/null; then
-            echo -e "${GREEN}✅ Подключение успешно как $USER${NC}"
-            echo ""
-            echo -e "${BLUE}📋 Информация о сервере:${NC}"
-            ssh "$USER@$SERVER_IP" "hostname && pwd && ls -la /var/www 2>/dev/null || ls -la /home 2>/dev/null | head -10"
-            break
-        fi
-    done
-else
-    echo -e "${YELLOW}⚠️  SSH ключи не найдены${NC}"
-fi
+# Проверка существования frontend директории
+echo "1️⃣ Проверка директории frontend:"
+ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} "ls -la ${SERVER_PATH}/frontend/ | head -10" || echo "❌ Не удалось подключиться"
 
 echo ""
-echo -e "${BLUE}📋 Следующие шаги:${NC}"
-echo "1. Подключитесь к серверу: ssh root@$SERVER_IP (или другой пользователь)"
-echo "2. Проверьте, где находится проект:"
-echo "   find / -name 'dnevnik-uspekha' -o -name 'маркет' 2>/dev/null"
-echo "3. Проверьте git репозиторий:"
-echo "   cd /путь/к/проекту && git remote -v"
-echo "4. Проверьте процессы:"
-echo "   ps aux | grep -E 'python|node|nginx'"
+echo "2️⃣ Проверка index.html:"
+ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} "ls -la ${SERVER_PATH}/frontend/index.html" || echo "❌ index.html не найден"
 
+echo ""
+echo "3️⃣ Проверка конфигурации nginx:"
+ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} "cat /etc/nginx/sites-available/dnevnik-uspekha | grep -A5 'listen 3000'" || echo "❌ Конфигурация не найдена"
 
+echo ""
+echo "4️⃣ Проверка прав доступа:"
+ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} "stat -c '%U:%G %a' ${SERVER_PATH}/frontend 2>/dev/null || stat -f '%Su:%Sg %OLp' ${SERVER_PATH}/frontend"
 
-
+echo ""
+echo "5️⃣ Проверка логов nginx:"
+ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} "tail -5 /var/log/nginx/dnevnik-uspekha-error.log 2>/dev/null || tail -5 /var/log/nginx/error.log"
 
