@@ -245,7 +245,43 @@ async def create_all_tables():
             print("  ✅ Добавлено поле stars_per_task")
         print("✅ Таблица settings обновлена\n")
         
-        # 9. Таблица family_rules
+        # 9. Таблица child_access (если еще не создана)
+        print("🔐 Проверка таблицы child_access...")
+        result = await conn.execute(text("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = 'child_access'
+            )
+        """))
+        if not result.scalar():
+            await conn.execute(text("""
+                CREATE TABLE child_access (
+                    id SERIAL PRIMARY KEY,
+                    child_id INTEGER NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+                    pin_hash VARCHAR,
+                    qr_token VARCHAR UNIQUE,
+                    qr_token_expires_at TIMESTAMP WITH TIME ZONE,
+                    qr_token_valid_from TIMESTAMP WITH TIME ZONE,
+                    qr_token_used_at TIMESTAMP WITH TIME ZONE,
+                    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                    failed_attempts INTEGER NOT NULL DEFAULT 0,
+                    locked_until TIMESTAMP WITH TIME ZONE,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP WITH TIME ZONE,
+                    CONSTRAINT fk_child_access_child FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE,
+                    CONSTRAINT uq_child_access_child_id UNIQUE (child_id)
+                )
+            """))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_child_access_id ON child_access(id)"))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_child_access_child_id ON child_access(child_id)"))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_child_access_qr_token ON child_access(qr_token)"))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_child_access_qr_token_used_at ON child_access(qr_token_used_at)"))
+            print("✅ Таблица child_access создана\n")
+        else:
+            print("✅ Таблица child_access уже существует\n")
+        
+        # 10. Таблица family_rules
         print("📜 Создание таблицы family_rules...")
         await conn.execute(text("""
             CREATE TABLE IF NOT EXISTS family_rules (
@@ -262,7 +298,7 @@ async def create_all_tables():
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_family_rules_user_id ON family_rules(user_id)"))
         print("✅ Таблица family_rules создана\n")
         
-        # 10. Таблица subscriptions
+        # 11. Таблица subscriptions
         print("💳 Создание таблицы subscriptions...")
         await conn.execute(text("""
             CREATE TABLE IF NOT EXISTS subscriptions (
@@ -283,7 +319,7 @@ async def create_all_tables():
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_subscriptions_user_id ON subscriptions(user_id)"))
         print("✅ Таблица subscriptions создана\n")
         
-        # 11. Создание ENUM для notifications
+        # 12. Создание ENUM для notifications
         print("🔔 Создание ENUM типов для notifications...")
         await conn.execute(text("""
             DO $$ BEGIN
@@ -302,7 +338,7 @@ async def create_all_tables():
         """))
         print("✅ ENUM типы для notifications созданы\n")
         
-        # 12. Таблица notifications
+        # 13. Таблица notifications
         print("📢 Создание таблицы notifications...")
         await conn.execute(text("""
             CREATE TABLE IF NOT EXISTS notifications (
@@ -324,7 +360,7 @@ async def create_all_tables():
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_notifications_subscription_id ON notifications(subscription_id)"))
         print("✅ Таблица notifications создана\n")
         
-        # 13. Таблица parent_consents
+        # 14. Таблица parent_consents
         print("✅ Создание таблицы parent_consents...")
         await conn.execute(text("""
             CREATE TABLE IF NOT EXISTS parent_consents (
@@ -346,7 +382,7 @@ async def create_all_tables():
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_parent_consents_child_id ON parent_consents(child_id)"))
         print("✅ Таблица parent_consents создана\n")
         
-        # 14. Таблица staff_users
+        # 15. Таблица staff_users
         print("👔 Создание таблицы staff_users...")
         await conn.execute(text("""
             CREATE TABLE IF NOT EXISTS staff_users (
@@ -376,6 +412,7 @@ async def create_all_tables():
         print("  ✅ wishlist_items")
         print("  ✅ weekly_stats")
         print("  ✅ settings (обновлена)")
+        print("  ✅ child_access")
         print("  ✅ family_rules")
         print("  ✅ subscriptions")
         print("  ✅ notifications")
