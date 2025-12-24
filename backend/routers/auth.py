@@ -108,14 +108,16 @@ async def login(
         
         # Установка refresh token в HttpOnly cookie (согласно rules.md)
         from core.config import settings
-        secure_cookie = settings.ENVIRONMENT == "production"
+        # Для HTTP (не HTTPS) secure должен быть False, иначе cookie не сохранится
+        secure_cookie = settings.ENVIRONMENT == "production" and request.url.scheme == "https"
         response.set_cookie(
             key="refresh_token",
             value=refresh_token,
             httponly=True,
             secure=secure_cookie,
-            samesite="lax",
-            max_age=30 * 24 * 60 * 60  # 30 дней
+            samesite="lax",  # lax для работы через прокси и HTTP
+            max_age=30 * 24 * 60 * 60,  # 30 дней
+            path="/"  # Явно указываем путь
         )
         
         return LoginResponse(
@@ -158,16 +160,17 @@ async def refresh(
         raise HTTPException(status_code=401, detail="Недействительный или истекший refresh token")
     
     # Установка нового refresh token в HttpOnly cookie
-    # secure=True только в production (HTTPS)
+    # secure=True только для HTTPS, иначе cookie не сохранится на HTTP
     from core.config import settings
-    secure_cookie = settings.ENVIRONMENT == "production"
+    secure_cookie = settings.ENVIRONMENT == "production" and request.url.scheme == "https"
     response.set_cookie(
         key="refresh_token",
         value=new_refresh_token,
         httponly=True,
         secure=secure_cookie,
-        samesite="lax",  # lax для работы через прокси
-        max_age=30 * 24 * 60 * 60  # 30 дней
+        samesite="lax",  # lax для работы через прокси и HTTP
+        max_age=30 * 24 * 60 * 60,  # 30 дней
+        path="/"  # Явно указываем путь
     )
     
     return {"access_token": new_access_token, "token_type": "bearer"}
@@ -238,16 +241,17 @@ async def register(
         # Коммит транзакции произойдет автоматически в get_db() после успешного выполнения
         # Если здесь произойдет ошибка, get_db() сделает rollback
         
-        # secure=True только в production (HTTPS)
+        # secure=True только для HTTPS, иначе cookie не сохранится на HTTP
         from core.config import settings
-        secure_cookie = settings.ENVIRONMENT == "production"
+        secure_cookie = settings.ENVIRONMENT == "production" and request.url.scheme == "https"
         response.set_cookie(
             key="refresh_token",
             value=refresh_token,
             httponly=True,
             secure=secure_cookie,
-            samesite="lax",  # lax для работы через прокси
-            max_age=30 * 24 * 60 * 60
+            samesite="lax",  # lax для работы через прокси и HTTP
+            max_age=30 * 24 * 60 * 60,  # 30 дней
+            path="/"  # Явно указываем путь
         )
         
         return LoginResponse(
@@ -828,9 +832,9 @@ async def admin_login(
     await auth_service.save_refresh_token(user["id"], refresh_token, device_info=device_info)
     
     # Установка refresh token в HttpOnly cookie
-    # secure=True только в production (HTTPS)
+    # secure=True только для HTTPS, иначе cookie не сохранится на HTTP
     from core.config import settings
-    secure_cookie = settings.ENVIRONMENT == "production"
+    secure_cookie = settings.ENVIRONMENT == "production" and request.url.scheme == "https"
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
