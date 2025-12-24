@@ -18,6 +18,7 @@ from core.database import get_db
 from core.dependencies import get_current_user
 from core.exceptions import ValidationError
 from core.middleware.rate_limit import limiter
+from datetime import timezone
 
 router = APIRouter()
 security = HTTPBearer()
@@ -434,7 +435,6 @@ async def child_pin_login(
         )
     
     # Проверка блокировки
-    from datetime import timezone
     if access.locked_until and datetime.now(timezone.utc) < access.locked_until:
         raise HTTPException(
             status_code=status.HTTP_423_LOCKED,
@@ -455,7 +455,6 @@ async def child_pin_login(
         
         # Блокировка после 5 неудачных попыток
         if access.failed_attempts >= 5:
-            from datetime import timezone
             access.locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)
             await access_repo.update(access, {
                 "failed_attempts": access.failed_attempts,
