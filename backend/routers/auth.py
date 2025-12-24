@@ -434,7 +434,8 @@ async def child_pin_login(
         )
     
     # Проверка блокировки
-    if access.locked_until and datetime.now() < access.locked_until:
+    from datetime import timezone
+    if access.locked_until and datetime.now(timezone.utc) < access.locked_until:
         raise HTTPException(
             status_code=status.HTTP_423_LOCKED,
             detail=f"Доступ заблокирован до {access.locked_until.strftime('%H:%M:%S')}"
@@ -454,7 +455,8 @@ async def child_pin_login(
         
         # Блокировка после 5 неудачных попыток
         if access.failed_attempts >= 5:
-            access.locked_until = datetime.now() + timedelta(minutes=15)
+            from datetime import timezone
+            access.locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)
             await access_repo.update(access, {
                 "failed_attempts": access.failed_attempts,
                 "locked_until": access.locked_until
@@ -543,9 +545,9 @@ async def child_qr_login(
     pin_required = not access.pin_hash
     
     # ОДНОРАЗОВОЕ ИСПОЛЬЗОВАНИЕ: Помечаем токен как использованный
-    from datetime import datetime
+    from datetime import datetime, timezone
     await access_repo.update(access, {
-        "qr_token_used_at": datetime.now()
+        "qr_token_used_at": datetime.now(timezone.utc)
     })
     await db.commit()  # Сохраняем изменения в БД
     

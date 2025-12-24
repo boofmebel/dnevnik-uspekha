@@ -184,7 +184,8 @@ async def generate_child_access(
         # Проверяем, есть ли уже доступ
         existing_access = await access_repo.get_by_child_id(child_id)
         
-        now = datetime.now()
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
         should_generate_new = True
         
         # Проверяем, можно ли использовать существующий QR-код

@@ -41,7 +41,8 @@ class ChildAccessRepository:
         if not access:
             return None
         
-        now = datetime.now()
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
         
         # Проверка: токен не должен быть использован (одноразовое использование)
         if access.qr_token_used_at is not None:
