@@ -544,7 +544,6 @@ async def child_qr_login(
     pin_required = not access.pin_hash
     
     # ОДНОРАЗОВОЕ ИСПОЛЬЗОВАНИЕ: Помечаем токен как использованный
-    from datetime import datetime, timezone
     await access_repo.update(access, {
         "qr_token_used_at": datetime.now(timezone.utc)
     })
