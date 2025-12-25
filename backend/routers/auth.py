@@ -561,6 +561,28 @@ async def child_qr_login(
     }
     access_token = create_access_token(token_data)
     
+    # Создаём refresh token для ребёнка (чтобы не выкидывало после истечения access token)
+    auth_service = AuthService(db)
+    refresh_token = auth_service.create_refresh_token(child.user_id, "child")
+    
+    # Получаем информацию об устройстве для сохранения refresh token
+    device_info = f"{request.headers.get('user-agent', 'Unknown')} | {request.client.host if request.client else 'Unknown'}"
+    await auth_service.save_refresh_token(child.user_id, refresh_token, device_info=device_info)
+    
+    # Устанавливаем refresh token в HttpOnly cookie (согласно rules.md)
+    from core.config import settings
+    # Для HTTP (не HTTPS) secure должен быть False, иначе cookie не сохранится
+    secure_cookie = settings.ENVIRONMENT == "production" and request.url.scheme == "https"
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=secure_cookie,
+        samesite="lax",  # lax для работы через прокси и HTTP
+        max_age=30 * 24 * 60 * 60,  # 30 дней
+        path="/"  # Явно указываем путь
+    )
+    
     # Если PIN не установлен, возвращаем специальный ответ
     if pin_required:
         return LoginResponse(
