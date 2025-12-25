@@ -140,6 +140,8 @@ class AuthService:
     
     async def refresh_token_rotation(self, refresh_token: str, device_info: Optional[str] = None) -> Tuple[Optional[str], Optional[str]]:
         """Ротация refresh token (согласно rules.md)"""
+        from core.security.jwt import verify_token
+        
         # 1. Проверяем старый refresh token
         old_token_record = await self.refresh_token_repo.get_valid_token(refresh_token)
         if not old_token_record:
@@ -147,10 +149,14 @@ class AuthService:
         
         user_id = old_token_record.user_id
         
-        # 2. Отзываем старый токен
+        # 2. Декодируем старый refresh token, чтобы получить child_id (если есть)
+        old_token_payload = verify_token(refresh_token, "refresh")
+        child_id = old_token_payload.get("child_id") if old_token_payload else None
+        
+        # 3. Отзываем старый токен
         await self.refresh_token_repo.revoke_token(refresh_token)
         
-        # 3. Создаем новый access и refresh token
+        # 4. Создаем новый access и refresh token
         user = await self.user_repo.get_by_id(user_id)
         if not user:
             return None, None
@@ -162,13 +168,51 @@ class AuthService:
         elif not isinstance(role, str):
             role = str(role)
         
-        new_access_token = self.create_access_token(user_id, role)
-        new_refresh_token = self.create_refresh_token(user_id, role)
+        # Для ребенка добавляем child_id в токен
+        if role == "child":
+            # Если child_id не был в старом токене, получаем его из базы
+            if not child_id:
+                from repositories.child_repository import ChildRepository
+                child_repo = ChildRepository(self.session)
+                children = await child_repo.get_by_user_id(user_id)
+                if children and len(children) > 0:
+                    child_id = str(children[0].id)  # Берем первого ребенка
+            
+            if child_id:
+                new_access_token = self.create_access_token_with_child_id(user_id, role, child_id)
+                new_refresh_token = self.create_refresh_token_with_child_id(user_id, role, child_id)
+            else:
+                # Если child_id не найден, создаем токен без него (fallback)
+                new_access_token = self.create_access_token(user_id, role)
+                new_refresh_token = self.create_refresh_token(user_id, role)
+        else:
+            new_access_token = self.create_access_token(user_id, role)
+            new_refresh_token = self.create_refresh_token(user_id, role)
         
-        # 4. Сохраняем новый refresh token
+        # 5. Сохраняем новый refresh token
         await self.refresh_token_repo.create(user_id, new_refresh_token, device_info)
         
         return new_access_token, new_refresh_token
+    
+    def create_access_token_with_child_id(self, user_id: int, role: str, child_id: str) -> str:
+        """Создание access token с child_id для ребенка"""
+        from core.security.jwt import create_access_token
+        token_data = {
+            "sub": str(user_id),
+            "role": role,
+            "child_id": child_id
+        }
+        return create_access_token(token_data)
+    
+    def create_refresh_token_with_child_id(self, user_id: int, role: str, child_id: str) -> str:
+        """Создание refresh token с child_id для ребенка"""
+        from core.security.jwt import create_refresh_token
+        token_data = {
+            "sub": str(user_id),
+            "role": role,
+            "child_id": child_id
+        }
+        return create_refresh_token(token_data)
     
     async def revoke_refresh_token(self, refresh_token: Optional[str] = None, user_id: Optional[int] = None):
         """Отзыв refresh token"""
