@@ -46,20 +46,25 @@ class ChildAccessRepository:
         # Логирование для отладки
         import logging
         logger = logging.getLogger(__name__)
-        logger.info(f"Проверка QR-токена: token={qr_token[:20]}..., now={now}, used_at={access.qr_token_used_at}, expires_at={access.qr_token_expires_at}")
+        logger.info(f"Проверка QR-токена: token={qr_token[:20]}..., child_id={access.child_id}, now={now}, used_at={access.qr_token_used_at}, expires_at={access.qr_token_expires_at}, is_active={access.is_active}")
+        
+        # Проверка активности
+        if not access.is_active:
+            logger.warning(f"QR-токен неактивен для ребенка {access.child_id}")
+            return None
         
         # Проверка: токен не должен быть использован (одноразовое использование)
         if access.qr_token_used_at is not None:
-            logger.warning(f"QR-токен уже использован: used_at={access.qr_token_used_at}")
+            logger.warning(f"QR-токен уже использован: used_at={access.qr_token_used_at}, child_id={access.child_id}")
             return None
         
         # Проверка общего срока действия
         if access.qr_token_expires_at:
             if now > access.qr_token_expires_at:
-                logger.warning(f"QR-токен истек по общему сроку: expires_at={access.qr_token_expires_at}, now={now}")
+                logger.warning(f"QR-токен истек по общему сроку: expires_at={access.qr_token_expires_at}, now={now}, child_id={access.child_id}")
                 return None
         
-        logger.info(f"QR-токен валиден, доступ разрешен")
+        logger.info(f"QR-токен валиден, доступ разрешен для ребенка {access.child_id}")
         return access
     
     async def create(self, access_data: dict) -> ChildAccess:
