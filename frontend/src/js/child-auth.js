@@ -218,6 +218,327 @@ function createChildLoginScreen() {
 }
 
 /**
+ * Создание экрана с камерой для сканирования QR-кода
+ */
+function createChildQRScannerScreen() {
+  const screen = document.createElement('div');
+  screen.id = 'child-login-screen';
+  screen.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+  `;
+  
+  screen.innerHTML = `
+    <div style="
+      position: relative;
+      width: 100%;
+      max-width: 500px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    ">
+      <!-- Видео с камеры -->
+      <video 
+        id="child-qr-video" 
+        autoplay 
+        playsinline
+        style="
+          width: 100%;
+          max-width: 400px;
+          height: auto;
+          border-radius: 16px;
+          background: #000;
+        "
+      ></video>
+      
+      <!-- Оверлей с рамкой для QR-кода -->
+      <div style="
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 250px;
+        height: 250px;
+        border: 3px solid #a78bfa;
+        border-radius: 16px;
+        pointer-events: none;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+      ">
+        <div style="
+          position: absolute;
+          top: -2px;
+          left: -2px;
+          width: 30px;
+          height: 30px;
+          border-top: 4px solid #a78bfa;
+          border-left: 4px solid #a78bfa;
+          border-radius: 16px 0 0 0;
+        "></div>
+        <div style="
+          position: absolute;
+          top: -2px;
+          right: -2px;
+          width: 30px;
+          height: 30px;
+          border-top: 4px solid #a78bfa;
+          border-right: 4px solid #a78bfa;
+          border-radius: 0 16px 0 0;
+        "></div>
+        <div style="
+          position: absolute;
+          bottom: -2px;
+          left: -2px;
+          width: 30px;
+          height: 30px;
+          border-bottom: 4px solid #a78bfa;
+          border-left: 4px solid #a78bfa;
+          border-radius: 0 0 0 16px;
+        "></div>
+        <div style="
+          position: absolute;
+          bottom: -2px;
+          right: -2px;
+          width: 30px;
+          height: 30px;
+          border-bottom: 4px solid #a78bfa;
+          border-right: 4px solid #a78bfa;
+          border-radius: 0 0 16px 0;
+        "></div>
+      </div>
+      
+      <!-- Canvas для обработки кадров -->
+      <canvas id="child-qr-canvas" style="display: none;"></canvas>
+      
+      <!-- Сообщение об ошибке -->
+      <div id="child-qr-error" style="
+        color: #ef4444;
+        font-size: 14px;
+        margin-top: 20px;
+        text-align: center;
+        display: none;
+        padding: 0 20px;
+      "></div>
+      
+      <!-- Инструкция -->
+      <p style="
+        margin-top: 40px;
+        color: white;
+        font-size: 16px;
+        text-align: center;
+        padding: 0 20px;
+        line-height: 1.5;
+      ">
+        Отсканируй QR-код у родителей<br>и пользуйся с удовольствием 😊
+      </p>
+    </div>
+  `;
+  
+  return screen;
+}
+
+/**
+ * Запуск сканирования QR-кода
+ */
+let qrScannerStream = null;
+let qrScannerInterval = null;
+
+async function startQRScanner() {
+  const video = document.getElementById('child-qr-video');
+  const canvas = document.getElementById('child-qr-canvas');
+  const errorDiv = document.getElementById('child-qr-error');
+  
+  if (!video || !canvas) {
+    console.error('❌ Элементы для сканирования QR не найдены');
+    return;
+  }
+  
+  // Загружаем библиотеку jsQR если еще не загружена
+  if (typeof jsQR === 'undefined') {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+    document.head.appendChild(script);
+    await new Promise((resolve, reject) => {
+      script.onload = resolve;
+      script.onerror = reject;
+    });
+  }
+  
+  try {
+    // Запрашиваем доступ к камере
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: 'environment', // Задняя камера
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    });
+    
+    qrScannerStream = stream;
+    video.srcObject = stream;
+    errorDiv.style.display = 'none';
+    
+    // Настраиваем canvas
+    const ctx = canvas.getContext('2d');
+    
+    // Обработка кадров для поиска QR-кода
+    video.addEventListener('loadedmetadata', () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      // Запускаем сканирование
+      qrScannerInterval = setInterval(() => {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          
+          // Ищем QR-код
+          const code = jsQR(imageData.data, imageData.width, imageData.height);
+          
+          if (code) {
+            console.log('✅ QR-код обнаружен:', code.data);
+            handleQRCodeDetected(code.data);
+          }
+        }
+      }, 100); // Проверяем каждые 100мс
+    });
+    
+  } catch (error) {
+    console.error('❌ Ошибка доступа к камере:', error);
+    errorDiv.textContent = 'Не удалось получить доступ к камере. Разрешите доступ к камере в настройках браузера.';
+    errorDiv.style.display = 'block';
+  }
+}
+
+/**
+ * Обработка обнаруженного QR-кода
+ */
+async function handleQRCodeDetected(qrData) {
+  // Останавливаем сканирование
+  stopQRScanner();
+  
+  // Парсим QR-код (ожидаем URL вида /child?qr_token=...)
+  let qrToken = null;
+  
+  try {
+    // Если это URL, извлекаем qr_token
+    if (qrData.includes('qr_token=')) {
+      const url = new URL(qrData);
+      qrToken = url.searchParams.get('qr_token');
+    } else if (qrData.includes('/child?qr_token=')) {
+      const match = qrData.match(/qr_token=([^&]+)/);
+      if (match) {
+        qrToken = match[1];
+      }
+    } else {
+      // Если это просто токен
+      qrToken = qrData;
+    }
+    
+    if (!qrToken) {
+      throw new Error('QR-код не содержит токен');
+    }
+    
+    console.log('🔑 Токен из QR-кода:', qrToken.substring(0, 20) + '...');
+    
+    // Выполняем вход по QR-коду
+    const errorDiv = document.getElementById('child-qr-error');
+    errorDiv.style.display = 'none';
+    
+    try {
+      const response = await apiClient.post('/auth/child-qr', {
+        qr_token: qrToken
+      });
+      
+      if (response && response.access_token) {
+        // Сохраняем токен
+        apiClient.setAccessToken(response.access_token);
+        console.log('✅ Вход по QR-коду успешен');
+        
+        // Устанавливаем флаг, что мы только что вошли по QR-коду
+        window.justLoggedInViaQR = true;
+        
+        // Скрываем экран входа
+        const loginScreen = document.getElementById('child-login-screen');
+        if (loginScreen) {
+          loginScreen.style.display = 'none';
+        }
+        
+        // Проверяем, требуется ли установка PIN
+        if (response.user && response.user.pin_required) {
+          console.log('🔐 Требуется установка PIN');
+          // Показываем модальное окно для установки PIN
+          if (typeof showPinSetupModal === 'function') {
+            await showPinSetupModal(response.user);
+            return;
+          }
+        }
+        
+        // Перезагружаем маршрут
+        if (typeof handleChildRoute === 'function') {
+          await handleChildRoute();
+        } else if (window.router) {
+          window.router.navigate('/child', true);
+        }
+      } else {
+        throw new Error('Токен не получен от сервера');
+      }
+    } catch (error) {
+      console.error('❌ Ошибка входа по QR-коду:', error);
+      errorDiv.textContent = 'Ошибка входа по QR-коду. Возможно, код устарел или недействителен.';
+      errorDiv.style.display = 'block';
+      
+      // Перезапускаем сканирование через 2 секунды
+      setTimeout(() => {
+        startQRScanner();
+      }, 2000);
+    }
+  } catch (error) {
+    console.error('❌ Ошибка обработки QR-кода:', error);
+    const errorDiv = document.getElementById('child-qr-error');
+    errorDiv.textContent = 'Неверный QR-код. Отсканируй QR-код у родителей.';
+    errorDiv.style.display = 'block';
+    
+    // Перезапускаем сканирование через 2 секунды
+    setTimeout(() => {
+      startQRScanner();
+    }, 2000);
+  }
+}
+
+/**
+ * Остановка сканирования QR-кода
+ */
+function stopQRScanner() {
+  if (qrScannerInterval) {
+    clearInterval(qrScannerInterval);
+    qrScannerInterval = null;
+  }
+  
+  if (qrScannerStream) {
+    qrScannerStream.getTracks().forEach(track => track.stop());
+    qrScannerStream = null;
+  }
+  
+  const video = document.getElementById('child-qr-video');
+  if (video) {
+    video.srcObject = null;
+  }
+}
+
+/**
  * Обработка входа по PIN
  */
 async function handleChildPinLogin() {
