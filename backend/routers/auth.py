@@ -523,11 +523,16 @@ async def child_qr_login(
     child_repo = ChildRepository(db)
     
     # Получаем доступ по QR-токену (с проверкой всех ограничений)
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Попытка входа по QR-токену: token={qr_request.qr_token[:20]}...")
+    
     access = await access_repo.get_by_qr_token(qr_request.qr_token)
     if not access:
+        logger.warning(f"QR-токен не найден или недействителен: token={qr_request.qr_token[:20]}...")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="QR-код недействителен, истёк или уже использован"
+            detail="QR-код недействителен, истёк или уже использован. Пожалуйста, попросите родителя сгенерировать новый QR-код."
         )
     
     # Получаем данные ребёнка
