@@ -58,6 +58,49 @@ async function handleChildRoute() {
         // Предотвращаем редирект bootstrapAuth - мы уже на правильной странице
         // Просто продолжаем загрузку интерфейса ребенка
         console.log('🔄 Продолжаем загрузку интерфейса ребенка после входа по QR-коду');
+        
+        // Загружаем модуль аутентификации ребенка если нужно
+        if (typeof window.checkChildAuth === 'undefined') {
+          const script = document.createElement('script');
+          script.src = '/src/js/child-auth.js';
+          document.body.appendChild(script);
+          await new Promise((resolve) => {
+            script.onload = resolve;
+          });
+        }
+        
+        // Проверяем авторизацию и загружаем интерфейс
+        const isAuthenticated = await window.checkChildAuth();
+        if (isAuthenticated) {
+          // Показываем контент ребенка
+          const childContent = document.getElementById('child-content');
+          if (childContent) {
+            childContent.style.display = 'block';
+          }
+          
+          // Загружаем данные и инициализируем интерфейс
+          if (typeof loadData === 'function') {
+            loadData();
+          }
+          if (typeof renderChecklist === 'function') {
+            renderChecklist();
+          }
+          if (typeof renderKanban === 'function') {
+            renderKanban();
+          }
+          if (typeof renderPiggy === 'function') {
+            renderPiggy();
+          }
+          if (typeof renderMoney === 'function') {
+            renderMoney();
+          }
+          if (typeof renderRules === 'function') {
+            renderRules();
+          }
+          if (typeof updateStars === 'function') {
+            updateStars();
+          }
+        }
       } else {
         throw new Error('Токен не получен от сервера');
       }
