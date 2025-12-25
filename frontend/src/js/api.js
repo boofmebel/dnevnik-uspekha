@@ -65,7 +65,8 @@ class ApiClient {
     const publicEndpoints = [
       '/auth/login',
       '/auth/register',
-      '/auth/child-qr',  // Вход по QR-коду не требует авторизации
+      '/auth/child-qr',  // Вход по QR-коду (старый формат) не требует авторизации
+      '/auth/child-login',  // Вход ребенка по логину/паролю родителя не требует авторизации
       '/auth/refresh'
     ];
     

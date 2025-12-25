@@ -28,3 +28,4 @@ echo ""
 echo "5️⃣ Проверка логов nginx:"
 ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} "tail -5 /var/log/nginx/dnevnik-uspekha-error.log 2>/dev/null || tail -5 /var/log/nginx/error.log"
 
+

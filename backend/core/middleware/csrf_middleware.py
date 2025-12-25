@@ -27,7 +27,8 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             "/api/auth/staff-login",
             "/api/auth/register",
             "/api/auth/refresh",
-            "/api/auth/child-qr",  # Вход ребенка по QR-коду не требует CSRF
+            "/api/auth/child-qr",  # Вход ребенка по QR-коду (старый формат) не требует CSRF
+            "/api/auth/child-login",  # Вход ребенка по логину/паролю родителя не требует CSRF
             "/api/children"  # Временно отключаем CSRF для children для отладки
         ]
     

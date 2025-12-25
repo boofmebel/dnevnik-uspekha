@@ -507,49 +507,136 @@ async function handleQRCodeDetected(qrData) {
   // Останавливаем сканирование
   stopQRScanner();
   
-  // Парсим QR-код (ожидаем URL вида /child?qr_token=... или полный URL)
+  // Парсим QR-код - проверяем новый формат (qr_data) или старый (qr_token)
+  let qrDataParam = null;
   let qrToken = null;
   
   try {
     console.log('📱 Распознан QR-код:', qrData);
     
-    // Пробуем извлечь токен разными способами
-    if (qrData.includes('qr_token=')) {
-      // Если это полный URL (http://...)
+    // Пробуем извлечь данные разными способами
+    if (qrData.includes('qr_data=')) {
+      // Новый формат с данными родителя
+      if (qrData.startsWith('http://') || qrData.startsWith('https://')) {
+        try {
+          const url = new URL(qrData);
+          qrDataParam = url.searchParams.get('qr_data');
+        } catch (e) {
+          const match = qrData.match(/qr_data=([^&]+)/);
+          if (match) {
+            qrDataParam = decodeURIComponent(match[1]);
+          }
+        }
+      } else {
+        const match = qrData.match(/qr_data=([^&]+)/);
+        if (match) {
+          qrDataParam = decodeURIComponent(match[1]);
+        }
+      }
+    } else if (qrData.includes('qr_token=')) {
+      // Старый формат с токеном
       if (qrData.startsWith('http://') || qrData.startsWith('https://')) {
         try {
           const url = new URL(qrData);
           qrToken = url.searchParams.get('qr_token');
         } catch (e) {
-          // Если не удалось распарсить как URL, пробуем regex
           const match = qrData.match(/qr_token=([^&]+)/);
           if (match) {
             qrToken = decodeURIComponent(match[1]);
           }
         }
       } else {
-        // Если это относительный URL (/child?qr_token=...)
         const match = qrData.match(/qr_token=([^&]+)/);
         if (match) {
           qrToken = decodeURIComponent(match[1]);
         }
       }
     } else {
-      // Если это просто токен (без URL)
+      // Если это просто токен (без URL) - старый формат
       qrToken = qrData.trim();
     }
     
-    if (!qrToken || qrToken.length < 10) {
-      throw new Error('QR-код не содержит валидный токен');
+    const errorDiv = document.getElementById('child-qr-error');
+    if (errorDiv) {
+      errorDiv.style.display = 'none';
     }
     
-    console.log('🔑 Извлеченный токен:', qrToken.substring(0, 20) + '...');
+    // Обрабатываем новый формат (qr_data)
+    if (qrDataParam) {
+      console.log('📱 Новый формат QR-кода (qr_data)');
+      
+      // Декодируем данные
+      let qrDataObj;
+      try {
+        const decoded = atob(qrDataParam);
+        qrDataObj = JSON.parse(decoded);
+        console.log('✅ Данные QR-кода декодированы:', qrDataObj);
+      } catch (e) {
+        console.error('❌ Ошибка декодирования QR-кода:', e);
+        throw new Error('Неверный формат QR-кода');
+      }
+      
+      // Проверяем формат данных
+      if (qrDataObj.type !== 'child-login' || !qrDataObj.phone || !qrDataObj.child_id) {
+        throw new Error('Неверный формат данных QR-кода');
+      }
+      
+      // Запрашиваем пароль у родителя (или используем сохраненный)
+      let password = localStorage.getItem(`parent_password_${qrDataObj.phone}`);
+      
+      if (!password) {
+        // Запрашиваем пароль у пользователя
+        password = prompt('Введите пароль родителя для входа:');
+        if (!password) {
+          throw new Error('Пароль не введен');
+        }
+        // Сохраняем пароль локально для последующих использований
+        localStorage.setItem(`parent_password_${qrDataObj.phone}`, password);
+      }
+      
+      // Выполняем вход по логину/паролю родителя с правами ребенка
+      const response = await apiClient.post('/auth/child-login', {
+        phone: qrDataObj.phone,
+        password: password,
+        child_id: qrDataObj.child_id
+      });
+      
+      if (response && response.access_token) {
+        apiClient.setAccessToken(response.access_token);
+        console.log('✅ Вход по QR-коду успешен');
+        
+        // Устанавливаем флаг
+        window.justLoggedInViaQR = true;
+        
+        // Скрываем экран входа
+        const loginScreen = document.getElementById('child-login-screen');
+        if (loginScreen) {
+          loginScreen.style.display = 'none';
+        }
+        
+        // Перезагружаем маршрут
+        if (typeof handleChildRoute === 'function') {
+          await handleChildRoute();
+        } else if (window.router) {
+          window.router.navigate('/child', true);
+        }
+        return;
+      } else {
+        throw new Error('Токен не получен от сервера');
+      }
+    }
     
-    // Выполняем вход по QR-коду
-    const errorDiv = document.getElementById('child-qr-error');
-    errorDiv.style.display = 'none';
-    
-    try {
+    // Обрабатываем старый формат (qr_token)
+    if (qrToken) {
+      console.log('📱 Старый формат QR-кода (qr_token)');
+      
+      if (qrToken.length < 10) {
+        throw new Error('QR-код не содержит валидный токен');
+      }
+      
+      console.log('🔑 Извлеченный токен:', qrToken.substring(0, 20) + '...');
+      
+      // Выполняем вход по QR-коду (старый формат)
       const response = await apiClient.post('/auth/child-qr', {
         qr_token: qrToken
       });
@@ -587,6 +674,10 @@ async function handleQRCodeDetected(qrData) {
       } else {
         throw new Error('Токен не получен от сервера');
       }
+    } else {
+      throw new Error('QR-код не содержит валидных данных');
+    }
+    
     } catch (error) {
       console.error('❌ Ошибка входа по QR-коду:', error);
       

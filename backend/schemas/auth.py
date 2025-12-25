@@ -48,8 +48,15 @@ class ChildPinRequest(BaseModel):
 
 
 class ChildQrRequest(BaseModel):
-    """Запрос на вход ребёнка по QR-коду"""
+    """Запрос на вход ребёнка по QR-коду (старый формат с токеном)"""
     qr_token: str
+
+
+class ChildLoginRequest(BaseModel):
+    """Запрос на вход ребёнка по логину/паролю родителя"""
+    phone: str = Field(..., description="Номер телефона родителя")
+    password: str = Field(..., description="Пароль родителя")
+    child_id: int = Field(..., description="ID ребенка для входа")
 
 
 class ChildAccessResponse(BaseModel):

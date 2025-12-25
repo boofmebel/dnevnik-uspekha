@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from schemas.auth import (
     LoginRequest, LoginResponse, RefreshRequest,
-    RegisterRequest, ChildPinRequest, ChildQrRequest, ChildAccessResponse,
+    RegisterRequest, ChildPinRequest, ChildQrRequest, ChildLoginRequest, ChildAccessResponse,
     AdminLoginRequest, StaffLoginRequest
 )
 from services.auth_service import AuthService

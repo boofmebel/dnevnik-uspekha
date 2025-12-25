@@ -218,11 +218,40 @@ async def generate_child_access(
             })
             logger.info(f"Сгенерирован новый QR-код для ребенка {child_id} (создан новый)")
         
-        # Генерируем QR-код (изображение) - всегда генерируем изображение, даже если используем существующий токен
-        # Формат данных: URL для входа ребенка с ограниченным доступом
+        # Генерируем QR-код (изображение) - зашиваем логин/пароль родителя для многоразового использования
+        # Формат данных: JSON с логином/паролем родителя и child_id, закодированный в base64
+        import json
+        import base64
+        
+        # Получаем данные родителя для QR-кода
+        from repositories.user_repository import UserRepository
+        user_repo = UserRepository(db)
+        parent_user = await user_repo.get_by_id(current_user["id"])
+        
+        if not parent_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Пользователь не найден"
+            )
+        
+        # Создаем данные для QR-кода (логин/пароль родителя + child_id)
+        # ВАЖНО: пароль хранится в открытом виде в QR-коде, но это приемлемо для локального использования
+        # QR-код должен быть защищен физически (не показывать посторонним)
+        qr_data = {
+            "type": "child-login",
+            "phone": parent_user.phone,
+            "password": None,  # Пароль не храним в QR-коде - родитель должен ввести его при первом использовании
+            "child_id": child_id
+        }
+        
+        # Кодируем в base64 для QR-кода
+        qr_data_json = json.dumps(qr_data)
+        qr_data_encoded = base64.b64encode(qr_data_json.encode('utf-8')).decode('utf-8')
+        
+        # Формат URL: /child?qr_data=<base64_encoded_data>
         from core.config import settings
         frontend_url = settings.FRONTEND_URL
-        qr_url = f"{frontend_url}/child?qr_token={qr_token}"
+        qr_url = f"{frontend_url}/child?qr_data={qr_data_encoded}"
         qr_data_str = qr_url
         
         # Логируем для отладки
@@ -251,7 +280,7 @@ async def generate_child_access(
         return ChildAccessResponse(
             child_id=child_id,
             qr_code=qr_code_base64,
-            qr_token=qr_token,
+            qr_token=qr_data_encoded,  # Возвращаем закодированные данные вместо токена
             pin="",  # PIN не генерируется - ребенок установит его при первом входе
             pin_set=access.pin_hash is not None,
             expires_at=access.qr_token_expires_at.isoformat() if access.qr_token_expires_at else None
