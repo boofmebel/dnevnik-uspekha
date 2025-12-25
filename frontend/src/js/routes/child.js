@@ -127,10 +127,16 @@ async function handleChildRoute() {
       });
     }
     
+    // Сохраняем роль в window для использования в других модулях
+    window.currentUserRole = 'child';
+    
     // Инициализируем приложение ребенка
     if (typeof initChildApp === 'function') {
       await initChildApp();
     }
+    
+    // Ограничиваем права ребенка: скрываем кнопки добавления/редактирования/удаления
+    restrictChildPermissions();
   } catch (e) {
     // 401 или другая ошибка - пробуем обновить токен
     const refreshed = await apiClient.refreshToken();
@@ -335,8 +341,69 @@ async function showPinSetupModal(user) {
   });
 }
 
+/**
+ * Ограничение прав ребенка
+ * Скрывает кнопки добавления/редактирования/удаления для дел и правил
+ */
+function restrictChildPermissions() {
+  console.log('🔒 Ограничение прав ребенка...');
+  
+  // Скрываем кнопки добавления дел
+  const addTaskBtnChecklist = document.querySelector('#checklist .add-btn-small');
+  if (addTaskBtnChecklist) {
+    addTaskBtnChecklist.style.display = 'none';
+  }
+  
+  // Скрываем кнопки добавления заданий в канбан
+  const addTaskBtnKanban = document.querySelector('#kanban .add-btn-small');
+  if (addTaskBtnKanban) {
+    addTaskBtnKanban.style.display = 'none';
+  }
+  
+  // Скрываем кнопку добавления правил
+  const addRuleBtn = document.querySelector('#rules .action-button');
+  if (addRuleBtn) {
+    addRuleBtn.style.display = 'none';
+  }
+  
+  // Отключаем функции добавления/удаления дел
+  if (typeof window.openAddTaskModal === 'function') {
+    window.openAddTaskModal = function() {
+      console.log('⚠️ Ребенок не может добавлять дела');
+    };
+  }
+  
+  if (typeof window.deleteChecklistTask === 'function') {
+    window.deleteChecklistTask = function() {
+      console.log('⚠️ Ребенок не может удалять дела');
+    };
+  }
+  
+  // Отключаем функции добавления/удаления правил
+  if (typeof window.openRuleModal === 'function') {
+    window.openRuleModal = function() {
+      console.log('⚠️ Ребенок не может добавлять правила');
+    };
+  }
+  
+  if (typeof window.addRule === 'function') {
+    window.addRule = function() {
+      console.log('⚠️ Ребенок не может добавлять правила');
+    };
+  }
+  
+  if (typeof window.deleteRule === 'function') {
+    window.deleteRule = function() {
+      console.log('⚠️ Ребенок не может удалять правила');
+    };
+  }
+  
+  console.log('✅ Права ребенка ограничены');
+}
+
 window.handleChildRoute = handleChildRoute;
 window.showPinSetupModal = showPinSetupModal;
+window.restrictChildPermissions = restrictChildPermissions;
 
 
 

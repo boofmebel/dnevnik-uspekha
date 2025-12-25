@@ -168,6 +168,12 @@ function toggleChecklistTask(id) {
 }
 
 function deleteChecklistTask(id) {
+  // Ребенок не может удалять дела
+  if (window.currentUserRole === 'child') {
+    console.log('⚠️ Ребенок не может удалять дела');
+    return;
+  }
+  
   if (confirm('Удалить задачу?')) {
     appData.checklist = appData.checklist.filter(t => t.id !== id);
     saveData();
@@ -176,6 +182,12 @@ function deleteChecklistTask(id) {
 }
 
 function openAddTaskModal(type) {
+  // Ребенок не может добавлять дела
+  if (window.currentUserRole === 'child') {
+    console.log('⚠️ Ребенок не может добавлять дела');
+    return;
+  }
+  
   document.getElementById('add-task-modal').classList.add('active');
   document.getElementById('add-task-modal').dataset.type = type;
   document.getElementById('new-task-text').value = '';
@@ -187,6 +199,12 @@ function closeAddTaskModal() {
 }
 
 function addTask() {
+  // Ребенок не может добавлять дела
+  if (window.currentUserRole === 'child') {
+    console.log('⚠️ Ребенок не может добавлять дела');
+    return;
+  }
+  
   try {
     const textInput = document.getElementById('new-task-text');
     const modal = document.getElementById('add-task-modal');
@@ -887,6 +905,12 @@ function renderRules() {
 }
 
 function openRuleModal() {
+  // Ребенок не может добавлять правила
+  if (window.currentUserRole === 'child') {
+    console.log('⚠️ Ребенок не может добавлять правила');
+    return;
+  }
+  
   document.getElementById('rule-modal').classList.add('active');
   document.getElementById('new-rule-text').value = '';
   document.getElementById('new-rule-text').focus();
@@ -897,6 +921,12 @@ function closeRuleModal() {
 }
 
 function addRule() {
+  // Ребенок не может добавлять правила
+  if (window.currentUserRole === 'child') {
+    console.log('⚠️ Ребенок не может добавлять правила');
+    return;
+  }
+  
   const text = document.getElementById('new-rule-text').value.trim();
   if (!text) return;
   
@@ -907,6 +937,12 @@ function addRule() {
 }
 
 function deleteRule(index) {
+  // Ребенок не может удалять правила
+  if (window.currentUserRole === 'child') {
+    console.log('⚠️ Ребенок не может удалять правила');
+    return;
+  }
+  
   if (confirm('Удалить правило?')) {
     appData.rules.splice(index, 1);
     saveData();

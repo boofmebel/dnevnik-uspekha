@@ -25,6 +25,9 @@ async function handleParentRoute() {
       return;
     }
     
+    // Сохраняем роль в window для использования в других модулях
+    window.currentUserRole = 'parent';
+    
     // Роль parent подтверждена - показываем контент родителя
     const parentContent = document.getElementById('parent-content');
     const mainContent = document.getElementById('app-content');
