@@ -41,52 +41,39 @@ async function checkChildAuth() {
 
 /**
  * Показ экрана входа для ребенка
+ * Показывает экран с камерой для автоматического сканирования QR-кода
  */
 async function showChildLoginScreen() {
-  // Получаем ID ребенка из localStorage или из URL
-  const urlParams = new URLSearchParams(window.location.search);
-  const childIdFromUrl = urlParams.get('child_id');
-  
-  // Если нет ID ребенка, нужно получить его из токена или другим способом
-  // Пока используем localStorage для хранения child_id после первого входа
-  const childId = childIdFromUrl || localStorage.getItem('child_id');
-  
-  if (!childId) {
-    // Нет ID ребенка - редирект на главную
-    if (window.router) {
-      window.router.navigate('/', true);
-    } else {
-      window.location.href = '/';
-    }
-    return;
-  }
-  
-  currentChildId = parseInt(childId);
-  
-  // Скрываем контент ребенка
+  // Скрываем все контенты
   const childContent = document.getElementById('child-content');
+  const mainContent = document.getElementById('app-content');
+  const parentContent = document.getElementById('parent-content');
+  const authModal = document.getElementById('auth-modal');
+  
   if (childContent) {
     childContent.style.display = 'none';
   }
+  if (mainContent) {
+    mainContent.style.display = 'none';
+  }
+  if (parentContent) {
+    parentContent.style.display = 'none';
+  }
+  if (authModal) {
+    authModal.style.display = 'none';
+  }
   
-  // Создаем или показываем экран входа
+  // Создаем или показываем экран с камерой
   let loginScreen = document.getElementById('child-login-screen');
   if (!loginScreen) {
-    loginScreen = createChildLoginScreen();
+    loginScreen = createChildQRScannerScreen();
     document.body.appendChild(loginScreen);
   }
   
   loginScreen.style.display = 'flex';
   
-  // Проверяем поддержку биометрии
-  const biometricSupported = await checkBiometricSupport();
-  if (biometricSupported) {
-    // Показываем кнопку биометрии
-    const biometricBtn = document.getElementById('child-biometric-btn');
-    if (biometricBtn) {
-      biometricBtn.style.display = 'block';
-    }
-  }
+  // Запускаем сканирование QR-кода
+  await startQRScanner();
 }
 
 /**
@@ -435,4 +422,6 @@ window.showChildLoginScreen = showChildLoginScreen;
 window.handleChildPinLogin = handleChildPinLogin;
 window.handleChildBiometricLogin = handleChildBiometricLogin;
 window.checkBiometricSupport = checkBiometricSupport;
+window.startQRScanner = startQRScanner;
+window.stopQRScanner = stopQRScanner;
 

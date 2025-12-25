@@ -145,9 +145,14 @@ async function handleChildRoute() {
       // Повторяем проверку
       return handleChildRoute();
     }
-    // Если не удалось обновить - редирект на главную
+    // Если не удалось обновить - показываем экран с камерой
     console.error('❌ Ошибка проверки авторизации:', e);
-    router.navigate('/', true);
+    // Показываем экран с камерой для сканирования QR-кода
+    if (typeof window.showChildLoginScreen === 'function') {
+      await window.showChildLoginScreen();
+    } else {
+      router.navigate('/', true);
+    }
   }
 }
 
