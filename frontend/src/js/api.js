@@ -95,9 +95,8 @@ class ApiClient {
       config.headers['Authorization'] = `Bearer ${token}`;
       console.log('🔑 Токен добавлен в запрос:', endpoint, 'Длина токена:', token.length);
     } else if (isPublicEndpoint) {
+      // Для публичных endpoints не добавляем токен и не логируем ошибку
       console.log('ℹ️ Публичный endpoint, токен не требуется:', endpoint);
-    } else {
-      console.debug('ℹ️ Токен не требуется для публичного endpoint:', endpoint);
     }
 
     try {
