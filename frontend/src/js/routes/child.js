@@ -25,6 +25,10 @@ async function handleChildRoute() {
         apiClient.setAccessToken(response.access_token);
         console.log('✅ Вход по QR-коду успешен');
         
+        // Устанавливаем флаг, что мы только что вошли по QR-коду
+        // Это предотвратит редирект в bootstrapAuth
+        window.justLoggedInViaQR = true;
+        
         // Убираем qr_token из URL
         const newUrl = window.location.pathname;
         window.history.replaceState({}, '', newUrl);
