@@ -438,7 +438,8 @@ function openChildAvatarModal() {
   `;
   
   // Получаем текущий аватар
-  const currentAvatar = (window.appData || appData)?.profile?.avatar || '';
+  // appData доступен глобально из data.js
+  const currentAvatar = (typeof appData !== 'undefined' ? appData : window.appData)?.profile?.avatar || '';
   const hasAvatar = !!currentAvatar;
   
   modal.innerHTML = `
@@ -536,7 +537,7 @@ function openChildAvatarModal() {
   if (removeBtn) {
     removeBtn.addEventListener('click', () => {
       if (confirm('Удалить аватар?')) {
-        const data = window.appData || appData;
+        const data = typeof appData !== 'undefined' ? appData : window.appData;
         if (!data.profile) {
           data.profile = {};
         }
@@ -833,7 +834,7 @@ function openChildAvatarCropModal(imageSrc) {
     const croppedImage = canvas.toDataURL('image/png');
     
     // Сохраняем
-    const data = window.appData || appData;
+    const data = typeof appData !== 'undefined' ? appData : window.appData;
     if (!data.profile) {
       data.profile = {};
     }
