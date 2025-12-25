@@ -3,8 +3,13 @@
  * Отображается при нажатии на аватар родителя
  */
 
-let currentChildren = [];
-let currentChildId = null; // ID выбранного ребенка
+// Используем window для глобальных переменных, чтобы избежать дублирования при повторной загрузке скрипта
+if (typeof window.currentChildren === 'undefined') {
+  window.currentChildren = [];
+}
+if (typeof window.currentChildId === 'undefined') {
+  window.currentChildId = null; // ID выбранного ребенка
+}
 
 /**
  * Инициализация модального окна управления детьми
@@ -144,12 +149,12 @@ function createChildrenModal() {
 async function loadChildrenForModal() {
   try {
     console.log('📥 Загрузка детей для модального окна...');
-    currentChildren = await apiClient.getChildren();
+    window.currentChildren = await apiClient.getChildren();
     console.log('✅ Дети загружены:', currentChildren);
     renderChildrenModalList();
     
     // Если детей нет, показываем сообщение
-    if (currentChildren.length === 0) {
+    if (window.currentChildren.length === 0) {
       const list = document.getElementById('children-modal-list');
       if (list) {
         list.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">Дети еще не добавлены</p>';
@@ -173,7 +178,7 @@ function renderChildrenModalList() {
   
   list.innerHTML = '';
   
-  if (currentChildren.length === 0) {
+  if (window.currentChildren.length === 0) {
     list.innerHTML = `
       <div style="
         text-align: center;
@@ -197,9 +202,9 @@ function renderChildrenModalList() {
     return;
   }
   
-  currentChildren.forEach((child) => {
+  window.currentChildren.forEach((child) => {
     const childItem = document.createElement('div');
-    const isSelected = currentChildId === child.id;
+    const isSelected = window.currentChildId === child.id;
     childItem.style.cssText = `
       display: flex;
       flex-direction: column;
@@ -444,10 +449,10 @@ async function switchToChild(childId) {
     console.log('🔄 Переключение на ребенка:', childId);
     
     // Сохраняем выбранного ребенка
-    currentChildId = childId;
+    window.currentChildId = childId;
     
     // Находим данные ребенка
-    const child = currentChildren.find(c => c.id === childId);
+    const child = window.currentChildren.find(c => c.id === childId);
     if (child) {
       // Обновляем имя в header
       updateHeaderChildName(child.name);
@@ -809,7 +814,7 @@ async function saveChildSettings(event) {
     await loadChildrenForModal();
     
     // Обновляем имя в header, если это текущий выбранный ребенок
-    if (currentChildId === childId && updatedChild.name) {
+    if (window.currentChildId === childId && updatedChild.name) {
       updateHeaderChildName(updatedChild.name);
     }
     
@@ -892,8 +897,8 @@ async function deleteChild(childId, childName) {
     await loadChildrenForModal();
     
     // Если удалили текущего ребенка, сбрасываем выбор
-    if (currentChildId === childId) {
-      currentChildId = null;
+    if (window.currentChildId === childId) {
+      window.currentChildId = null;
     }
     
     alert('Ребенок успешно удален');

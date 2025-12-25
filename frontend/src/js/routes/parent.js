@@ -60,7 +60,8 @@ async function handleParentRoute() {
     }
     
     // Загружаем скрипт модального окна управления детьми
-    if (typeof initChildrenModal === 'undefined') {
+    // Проверяем, не загружен ли уже скрипт
+    if (typeof initChildrenModal === 'undefined' && !document.querySelector('script[src*="children-modal.js"]')) {
       const script = document.createElement('script');
       script.src = '/src/js/children-modal.js?v=' + Date.now();
       document.body.appendChild(script);

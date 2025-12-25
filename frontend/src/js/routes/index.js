@@ -50,6 +50,13 @@ async function bootstrapAuth() {
     const me = await apiClient.get('/auth/me');
     console.log('✅ bootstrapAuth: /api/auth/me вернул:', me);
 
+    // Не делаем редирект, если мы уже на правильной странице после входа по QR-коду
+    const currentPath = window.location.pathname;
+    if (currentPath === '/child' && me.role === 'child') {
+      console.log('✅ bootstrapAuth: уже на странице ребенка, редирект не нужен');
+      return; // Не делаем редирект, продолжаем загрузку страницы
+    }
+
     // Редирект по роли из backend
     if (me.role === 'parent') {
       console.log('🔄 bootstrapAuth: редирект на /parent');
