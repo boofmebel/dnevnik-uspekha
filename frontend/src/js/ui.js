@@ -896,10 +896,17 @@ function renderRules() {
   const container = document.getElementById('rules-list');
   container.innerHTML = '';
   
+  // Проверяем роль пользователя
+  const isChild = window.currentUserRole === 'child';
+  
   appData.rules.forEach((rule, index) => {
     const li = document.createElement('li');
     const span = createTextElement('span', rule || '', '');
     li.appendChild(span);
+    
+    // Для ребенка не показываем кнопки редактирования/удаления
+    // Только просмотр
+    
     container.appendChild(li);
   });
 }
