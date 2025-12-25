@@ -324,13 +324,34 @@ function createChildQRScannerScreen() {
       
       <!-- Сообщение об ошибке -->
       <div id="child-qr-error" style="
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.9);
         color: #ef4444;
-        font-size: 14px;
-        margin-top: 20px;
+        font-size: 16px;
         text-align: center;
         display: none;
-        padding: 0 20px;
-      "></div>
+        padding: 20px;
+        border-radius: 12px;
+        max-width: 80%;
+        z-index: 10001;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      ">
+        <div style="margin-bottom: 16px;">⚠️</div>
+        <div id="child-qr-error-text"></div>
+        <button onclick="document.getElementById('child-qr-error').style.display='none'; startQRScanner();" style="
+          margin-top: 16px;
+          padding: 8px 16px;
+          background: #a78bfa;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 14px;
+        ">Закрыть</button>
+      </div>
       
       <!-- Инструкция -->
       <p style="
@@ -429,29 +450,43 @@ async function handleQRCodeDetected(qrData) {
   // Останавливаем сканирование
   stopQRScanner();
   
-  // Парсим QR-код (ожидаем URL вида /child?qr_token=...)
+  // Парсим QR-код (ожидаем URL вида /child?qr_token=... или полный URL)
   let qrToken = null;
   
   try {
-    // Если это URL, извлекаем qr_token
+    console.log('📱 Распознан QR-код:', qrData);
+    
+    // Пробуем извлечь токен разными способами
     if (qrData.includes('qr_token=')) {
-      const url = new URL(qrData);
-      qrToken = url.searchParams.get('qr_token');
-    } else if (qrData.includes('/child?qr_token=')) {
-      const match = qrData.match(/qr_token=([^&]+)/);
-      if (match) {
-        qrToken = match[1];
+      // Если это полный URL (http://...)
+      if (qrData.startsWith('http://') || qrData.startsWith('https://')) {
+        try {
+          const url = new URL(qrData);
+          qrToken = url.searchParams.get('qr_token');
+        } catch (e) {
+          // Если не удалось распарсить как URL, пробуем regex
+          const match = qrData.match(/qr_token=([^&]+)/);
+          if (match) {
+            qrToken = decodeURIComponent(match[1]);
+          }
+        }
+      } else {
+        // Если это относительный URL (/child?qr_token=...)
+        const match = qrData.match(/qr_token=([^&]+)/);
+        if (match) {
+          qrToken = decodeURIComponent(match[1]);
+        }
       }
     } else {
-      // Если это просто токен
-      qrToken = qrData;
+      // Если это просто токен (без URL)
+      qrToken = qrData.trim();
     }
     
-    if (!qrToken) {
-      throw new Error('QR-код не содержит токен');
+    if (!qrToken || qrToken.length < 10) {
+      throw new Error('QR-код не содержит валидный токен');
     }
     
-    console.log('🔑 Токен из QR-кода:', qrToken.substring(0, 20) + '...');
+    console.log('🔑 Извлеченный токен:', qrToken.substring(0, 20) + '...');
     
     // Выполняем вход по QR-коду
     const errorDiv = document.getElementById('child-qr-error');
@@ -497,24 +532,53 @@ async function handleQRCodeDetected(qrData) {
       }
     } catch (error) {
       console.error('❌ Ошибка входа по QR-коду:', error);
-      errorDiv.textContent = 'Ошибка входа по QR-коду. Возможно, код устарел или недействителен.';
+      
+      // Получаем детальное сообщение об ошибке
+      let errorMessage = 'Ошибка входа по QR-коду. Возможно, код устарел или недействителен.';
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.detail) {
+        errorMessage = error.detail;
+      } else if (error.response && error.response.detail) {
+        errorMessage = error.response.detail;
+      }
+      
+      const errorText = document.getElementById('child-qr-error-text');
+      if (errorText) {
+        errorText.textContent = errorMessage;
+      } else {
+        errorDiv.textContent = errorMessage;
+      }
       errorDiv.style.display = 'block';
       
-      // Перезапускаем сканирование через 2 секунды
+      // Перезапускаем сканирование через 3 секунды (если пользователь не закрыл ошибку)
       setTimeout(() => {
-        startQRScanner();
-      }, 2000);
+        if (errorDiv.style.display !== 'none') {
+          errorDiv.style.display = 'none';
+          startQRScanner();
+        }
+      }, 3000);
     }
   } catch (error) {
     console.error('❌ Ошибка обработки QR-кода:', error);
     const errorDiv = document.getElementById('child-qr-error');
-    errorDiv.textContent = 'Неверный QR-код. Отсканируй QR-код у родителей.';
+    const errorText = document.getElementById('child-qr-error-text');
+    const errorMessage = 'Неверный QR-код. Отсканируй QR-код у родителей.';
+    
+    if (errorText) {
+      errorText.textContent = errorMessage;
+    } else {
+      errorDiv.textContent = errorMessage;
+    }
     errorDiv.style.display = 'block';
     
-    // Перезапускаем сканирование через 2 секунды
+    // Перезапускаем сканирование через 3 секунды (если пользователь не закрыл ошибку)
     setTimeout(() => {
-      startQRScanner();
-    }, 2000);
+      if (errorDiv.style.display !== 'none') {
+        errorDiv.style.display = 'none';
+        startQRScanner();
+      }
+    }, 3000);
   }
 }
 
