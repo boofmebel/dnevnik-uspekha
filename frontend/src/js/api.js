@@ -79,6 +79,7 @@ class ApiClient {
           showAuthModal();
         }
       }
+      // Для публичных endpoints не логируем предупреждение - это нормально
     }
     
     const config = {
