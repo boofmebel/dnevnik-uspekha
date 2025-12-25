@@ -238,22 +238,25 @@ function createChildLoginScreen() {
  * Создание экрана с камерой для сканирования QR-кода
  */
 function createChildQRScannerScreen() {
+  console.log('📱 createChildQRScannerScreen: создание экрана');
   const screen = document.createElement('div');
   screen.id = 'child-login-screen';
   screen.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: #000;
-    z-index: 10000;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    box-sizing: border-box;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: #000 !important;
+    z-index: 99999 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 20px !important;
+    box-sizing: border-box !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   `;
   
   screen.innerHTML = `
