@@ -562,8 +562,9 @@ async def child_qr_login(
     access_token = create_access_token(token_data)
     
     # Создаём refresh token для ребёнка (чтобы не выкидывало после истечения access token)
+    # ВАЖНО: добавляем child_id в refresh token, чтобы при обновлении токена сохранить child_id
     auth_service = AuthService(db)
-    refresh_token = auth_service.create_refresh_token(child.user_id, "child")
+    refresh_token = auth_service.create_refresh_token_with_child_id(child.user_id, "child", str(child.id))
     
     # Получаем информацию об устройстве для сохранения refresh token
     device_info = f"{request.headers.get('user-agent', 'Unknown')} | {request.client.host if request.client else 'Unknown'}"
