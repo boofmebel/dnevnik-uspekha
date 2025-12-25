@@ -13,7 +13,19 @@ async function handleChildRoute() {
   const qrToken = urlParams.get('qr_token');
   
   if (qrToken) {
-    console.log('📱 Обнаружен QR-токен в URL, выполняю вход...');
+    console.log('📱 Обнаружен QR-токен в URL, выполняю вход...', qrToken.substring(0, 20) + '...');
+    
+    // Скрываем все контенты и показываем загрузку
+    const childContent = document.getElementById('child-content');
+    const mainContent = document.getElementById('app-content');
+    const parentContent = document.getElementById('parent-content');
+    const authModal = document.getElementById('auth-modal');
+    
+    if (childContent) childContent.style.display = 'none';
+    if (mainContent) mainContent.style.display = 'none';
+    if (parentContent) parentContent.style.display = 'none';
+    if (authModal) authModal.style.display = 'none';
+    
     try {
       // Выполняем вход по QR-коду
       const response = await apiClient.post('/auth/child-qr', {
@@ -37,8 +49,10 @@ async function handleChildRoute() {
         if (response.user && response.user.pin_required) {
           console.log('🔐 Требуется установка PIN');
           // Показываем модальное окно для установки PIN
-          await showPinSetupModal(response.user);
-          return; // Не продолжаем загрузку интерфейса до установки PIN
+          if (typeof showPinSetupModal === 'function') {
+            await showPinSetupModal(response.user);
+            return; // Не продолжаем загрузку интерфейса до установки PIN
+          }
         }
         
         // Предотвращаем редирект bootstrapAuth - мы уже на правильной странице
@@ -49,8 +63,33 @@ async function handleChildRoute() {
       }
     } catch (error) {
       console.error('❌ Ошибка входа по QR-коду:', error);
-      alert('Ошибка входа по QR-коду. Возможно, код устарел или недействителен.');
-      router.navigate('/', true);
+      
+      // Получаем детальное сообщение об ошибке
+      let errorMessage = 'Ошибка входа по QR-коду. Возможно, код устарел или недействителен.';
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.detail) {
+        errorMessage = error.detail;
+      }
+      
+      // Показываем экран с камерой для повторного сканирования
+      if (typeof window.showChildLoginScreen === 'function') {
+        await window.showChildLoginScreen();
+        // Показываем ошибку
+        const errorDiv = document.getElementById('child-qr-error');
+        if (errorDiv) {
+          const errorText = document.getElementById('child-qr-error-text');
+          if (errorText) {
+            errorText.textContent = errorMessage;
+          } else {
+            errorDiv.textContent = errorMessage;
+          }
+          errorDiv.style.display = 'block';
+        }
+      } else {
+        alert(errorMessage);
+        router.navigate('/', true);
+      }
       return;
     }
   }

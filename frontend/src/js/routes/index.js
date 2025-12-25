@@ -50,6 +50,16 @@ async function bootstrapAuth() {
     const me = await apiClient.get('/auth/me');
     console.log('✅ bootstrapAuth: /api/auth/me вернул:', me);
 
+    // Проверяем, есть ли qr_token в URL (вход по QR-коду)
+    const urlParams = new URLSearchParams(window.location.search);
+    const qrToken = urlParams.get('qr_token');
+    
+    // Если есть qr_token в URL, не делаем редирект - пусть handleChildRoute обработает его
+    if (qrToken && me.role === 'child') {
+      console.log('✅ bootstrapAuth: обнаружен qr_token в URL, редирект не нужен - handleChildRoute обработает');
+      return; // Не делаем редирект, handleChildRoute обработает вход по QR-коду
+    }
+    
     // Не делаем редирект, если мы только что вошли по QR-коду
     if (window.justLoggedInViaQR && me.role === 'child') {
       console.log('✅ bootstrapAuth: только что вошли по QR-коду, редирект не нужен');
