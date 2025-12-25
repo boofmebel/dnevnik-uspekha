@@ -438,7 +438,7 @@ function openChildAvatarModal() {
   `;
   
   // Получаем текущий аватар
-  const currentAvatar = appData.profile?.avatar || '';
+  const currentAvatar = (window.appData || appData)?.profile?.avatar || '';
   const hasAvatar = !!currentAvatar;
   
   modal.innerHTML = `
@@ -536,12 +536,17 @@ function openChildAvatarModal() {
   if (removeBtn) {
     removeBtn.addEventListener('click', () => {
       if (confirm('Удалить аватар?')) {
-        if (!appData.profile) {
-          appData.profile = {};
+        const data = window.appData || appData;
+        if (!data.profile) {
+          data.profile = {};
         }
-        appData.profile.avatar = '';
-        saveData();
-        updateProfileAvatar();
+        data.profile.avatar = '';
+        if (typeof saveData === 'function') {
+          saveData();
+        }
+        if (typeof updateProfileAvatar === 'function') {
+          updateProfileAvatar();
+        }
         document.body.removeChild(modal);
       }
     });
@@ -828,12 +833,17 @@ function openChildAvatarCropModal(imageSrc) {
     const croppedImage = canvas.toDataURL('image/png');
     
     // Сохраняем
-    if (!appData.profile) {
-      appData.profile = {};
+    const data = window.appData || appData;
+    if (!data.profile) {
+      data.profile = {};
     }
-    appData.profile.avatar = croppedImage;
-    saveData();
-    updateProfileAvatar();
+    data.profile.avatar = croppedImage;
+    if (typeof saveData === 'function') {
+      saveData();
+    }
+    if (typeof updateProfileAvatar === 'function') {
+      updateProfileAvatar();
+    }
     
     document.body.removeChild(modal);
   });
