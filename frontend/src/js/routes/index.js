@@ -54,9 +54,11 @@ async function bootstrapAuth() {
     const urlParams = new URLSearchParams(window.location.search);
     const qrToken = urlParams.get('qr_token');
     
-    // Если есть qr_token в URL, не делаем редирект - пусть handleChildRoute обработает его
-    if (qrToken && me.role === 'child') {
-      console.log('✅ bootstrapAuth: обнаружен qr_token в URL, редирект не нужен - handleChildRoute обработает');
+    // Если есть qr_token в URL и мы на странице /child, не делаем редирект
+    // Пусть handleChildRoute обработает вход по QR-коду
+    const currentPath = window.location.pathname;
+    if (qrToken && currentPath === '/child') {
+      console.log('✅ bootstrapAuth: обнаружен qr_token в URL на странице /child, редирект не нужен - handleChildRoute обработает');
       return; // Не делаем редирект, handleChildRoute обработает вход по QR-коду
     }
     

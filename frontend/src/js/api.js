@@ -60,10 +60,21 @@ class ApiClient {
     // ВАЖНО: Проверяем токен ПЕРЕД созданием config
     // Согласно rules.md: access token хранится только в памяти
     let token = this.accessToken;
+    
+    // Список endpoints, которые НЕ требуют авторизации
+    const publicEndpoints = [
+      '/auth/login',
+      '/auth/register',
+      '/auth/child-qr',  // Вход по QR-коду не требует авторизации
+      '/auth/refresh'
+    ];
+    
+    const isPublicEndpoint = publicEndpoints.some(publicEndpoint => endpoint.includes(publicEndpoint));
+    
     if (!token || !token.trim()) {
-      console.warn('⚠️ Токен отсутствует для запроса:', endpoint);
-      // Если токена нет и это не запрос на авторизацию, показываем окно входа
-      if (!endpoint.includes('/auth/login') && !endpoint.includes('/auth/register')) {
+      if (!isPublicEndpoint) {
+        console.warn('⚠️ Токен отсутствует для запроса:', endpoint);
+        // Если токена нет и это не публичный endpoint, показываем окно входа
         if (typeof showAuthModal === 'function') {
           showAuthModal();
         }
@@ -79,12 +90,12 @@ class ApiClient {
       },
     };
 
-    // Добавляем access token в заголовок (согласно rules.md)
-    if (token && token.trim()) {
+    // Добавляем access token в заголовок только если это не публичный endpoint
+    if (token && token.trim() && !isPublicEndpoint) {
       config.headers['Authorization'] = `Bearer ${token}`;
       console.log('🔑 Токен добавлен в запрос:', endpoint, 'Длина токена:', token.length);
-    } else {
-      console.error('❌ Токен не найден для запроса:', endpoint);
+    } else if (!isPublicEndpoint) {
+      console.debug('ℹ️ Токен не требуется для публичного endpoint:', endpoint);
     }
 
     try {

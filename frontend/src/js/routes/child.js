@@ -72,23 +72,39 @@ async function handleChildRoute() {
         errorMessage = error.detail;
       }
       
+      // Убираем qr_token из URL, чтобы предотвратить повторные попытки
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+      
+      // Загружаем модуль аутентификации ребенка если нужно
+      if (typeof window.checkChildAuth === 'undefined') {
+        const script = document.createElement('script');
+        script.src = '/src/js/child-auth.js';
+        document.body.appendChild(script);
+        await new Promise((resolve) => {
+          script.onload = resolve;
+        });
+      }
+      
       // Показываем экран с камерой для повторного сканирования
       if (typeof window.showChildLoginScreen === 'function') {
         await window.showChildLoginScreen();
-        // Показываем ошибку
-        const errorDiv = document.getElementById('child-qr-error');
-        if (errorDiv) {
-          const errorText = document.getElementById('child-qr-error-text');
-          if (errorText) {
-            errorText.textContent = errorMessage;
-          } else {
-            errorDiv.textContent = errorMessage;
+        // Показываем ошибку через небольшую задержку, чтобы экран успел отобразиться
+        setTimeout(() => {
+          const errorDiv = document.getElementById('child-qr-error');
+          if (errorDiv) {
+            const errorText = document.getElementById('child-qr-error-text');
+            if (errorText) {
+              errorText.textContent = errorMessage;
+            } else {
+              errorDiv.textContent = errorMessage;
+            }
+            errorDiv.style.display = 'block';
           }
-          errorDiv.style.display = 'block';
-        }
+        }, 500);
       } else {
         alert(errorMessage);
-        router.navigate('/', true);
+        // Не делаем редирект, остаемся на странице /child
       }
       return;
     }
