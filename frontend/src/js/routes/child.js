@@ -76,6 +76,10 @@ async function handleChildRoute() {
       const newUrl = window.location.pathname;
       window.history.replaceState({}, '', newUrl);
       
+      // Устанавливаем флаг, что мы обрабатываем ошибку входа по QR-коду
+      // Это предотвратит редирект в bootstrapAuth
+      window.qrLoginError = true;
+      
       // Загружаем модуль аутентификации ребенка если нужно
       if (typeof window.checkChildAuth === 'undefined') {
         const script = document.createElement('script');

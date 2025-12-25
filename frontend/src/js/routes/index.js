@@ -5,6 +5,13 @@
  * Безопасность: используем /api/auth/me вместо декодирования JWT на клиенте
  */
 async function bootstrapAuth() {
+  // Если мы обрабатываем ошибку входа по QR-коду, не делаем редирект
+  if (window.qrLoginError) {
+    console.log('✅ bootstrapAuth: обрабатывается ошибка входа по QR-коду, редирект не нужен');
+    window.qrLoginError = false; // Сбрасываем флаг
+    return;
+  }
+  
   let token = apiClient.getAccessToken();
   console.log('🔍 bootstrapAuth: токен есть?', !!token);
 
@@ -19,6 +26,20 @@ async function bootstrapAuth() {
         apiClient.setAccessToken(refreshed);
       } else {
         console.log('⚠️ bootstrapAuth: не удалось восстановить токен, показываю форму входа');
+        
+        // Проверяем, есть ли qr_token в URL - если есть, показываем экран с камерой
+        const urlParams = new URLSearchParams(window.location.search);
+        const qrToken = urlParams.get('qr_token');
+        const currentPath = window.location.pathname;
+        
+        if (qrToken && currentPath === '/child') {
+          console.log('✅ bootstrapAuth: обнаружен qr_token, показываю экран с камерой');
+          if (typeof window.showChildLoginScreen === 'function') {
+            await window.showChildLoginScreen();
+            return;
+          }
+        }
+        
         if (typeof showAuthModal === 'function') {
           showAuthModal();
         } else {
@@ -32,6 +53,20 @@ async function bootstrapAuth() {
       }
     } catch (error) {
       console.error('❌ bootstrapAuth: ошибка при восстановлении токена:', error);
+      
+      // Проверяем, есть ли qr_token в URL - если есть, показываем экран с камерой
+      const urlParams = new URLSearchParams(window.location.search);
+      const qrToken = urlParams.get('qr_token');
+      const currentPath = window.location.pathname;
+      
+      if (qrToken && currentPath === '/child') {
+        console.log('✅ bootstrapAuth: обнаружен qr_token, показываю экран с камерой');
+        if (typeof window.showChildLoginScreen === 'function') {
+          await window.showChildLoginScreen();
+          return;
+        }
+      }
+      
       // Если не удалось восстановить - показываем форму входа
       if (typeof showAuthModal === 'function') {
         showAuthModal();
