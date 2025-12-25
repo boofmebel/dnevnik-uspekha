@@ -44,6 +44,8 @@ async function checkChildAuth() {
  * Показывает экран с камерой для автоматического сканирования QR-кода
  */
 async function showChildLoginScreen() {
+  console.log('📱 showChildLoginScreen: начало');
+  
   // Скрываем все контенты
   const childContent = document.getElementById('child-content');
   const mainContent = document.getElementById('app-content');
@@ -52,28 +54,43 @@ async function showChildLoginScreen() {
   
   if (childContent) {
     childContent.style.display = 'none';
+    console.log('✅ child-content скрыт');
   }
   if (mainContent) {
     mainContent.style.display = 'none';
+    console.log('✅ app-content скрыт');
   }
   if (parentContent) {
     parentContent.style.display = 'none';
+    console.log('✅ parent-content скрыт');
   }
   if (authModal) {
     authModal.style.display = 'none';
+    console.log('✅ auth-modal скрыт');
   }
   
   // Создаем или показываем экран с камерой
   let loginScreen = document.getElementById('child-login-screen');
   if (!loginScreen) {
+    console.log('📱 Создаю новый экран с камерой');
     loginScreen = createChildQRScannerScreen();
     document.body.appendChild(loginScreen);
+    console.log('✅ Экран с камерой добавлен в DOM');
+  } else {
+    console.log('📱 Использую существующий экран с камерой');
   }
   
   loginScreen.style.display = 'flex';
+  console.log('✅ Экран с камерой показан (display: flex)');
   
   // Запускаем сканирование QR-кода
-  await startQRScanner();
+  console.log('📱 Запускаю сканирование QR-кода');
+  try {
+    await startQRScanner();
+    console.log('✅ Сканирование QR-кода запущено');
+  } catch (error) {
+    console.error('❌ Ошибка запуска сканирования:', error);
+  }
 }
 
 /**
@@ -377,27 +394,45 @@ let qrScannerStream = null;
 let qrScannerInterval = null;
 
 async function startQRScanner() {
+  console.log('📱 startQRScanner: начало');
+  
   const video = document.getElementById('child-qr-video');
   const canvas = document.getElementById('child-qr-canvas');
   const errorDiv = document.getElementById('child-qr-error');
   
-  if (!video || !canvas) {
-    console.error('❌ Элементы для сканирования QR не найдены');
+  if (!video) {
+    console.error('❌ Элемент video не найден');
+    return;
+  }
+  if (!canvas) {
+    console.error('❌ Элемент canvas не найден');
     return;
   }
   
+  console.log('✅ Элементы video и canvas найдены');
+  
   // Загружаем библиотеку jsQR если еще не загружена
   if (typeof jsQR === 'undefined') {
+    console.log('📚 Загружаю библиотеку jsQR');
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
     document.head.appendChild(script);
     await new Promise((resolve, reject) => {
-      script.onload = resolve;
-      script.onerror = reject;
+      script.onload = () => {
+        console.log('✅ Библиотека jsQR загружена');
+        resolve();
+      };
+      script.onerror = (error) => {
+        console.error('❌ Ошибка загрузки jsQR:', error);
+        reject(error);
+      };
     });
+  } else {
+    console.log('✅ Библиотека jsQR уже загружена');
   }
   
   try {
+    console.log('📷 Запрашиваю доступ к камере');
     // Запрашиваем доступ к камере
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {
@@ -407,17 +442,22 @@ async function startQRScanner() {
       }
     });
     
+    console.log('✅ Доступ к камере получен');
     qrScannerStream = stream;
     video.srcObject = stream;
-    errorDiv.style.display = 'none';
+    if (errorDiv) {
+      errorDiv.style.display = 'none';
+    }
     
     // Настраиваем canvas
     const ctx = canvas.getContext('2d');
     
     // Обработка кадров для поиска QR-кода
     video.addEventListener('loadedmetadata', () => {
+      console.log('✅ Метаданные видео загружены');
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
+      console.log(`📐 Размер canvas: ${canvas.width}x${canvas.height}`);
       
       // Запускаем сканирование
       qrScannerInterval = setInterval(() => {
@@ -434,12 +474,26 @@ async function startQRScanner() {
           }
         }
       }, 100); // Проверяем каждые 100мс
+      console.log('✅ Интервал сканирования запущен');
+    });
+    
+    // Обработка ошибок видео
+    video.addEventListener('error', (e) => {
+      console.error('❌ Ошибка видео:', e);
     });
     
   } catch (error) {
     console.error('❌ Ошибка доступа к камере:', error);
-    errorDiv.textContent = 'Не удалось получить доступ к камере. Разрешите доступ к камере в настройках браузера.';
-    errorDiv.style.display = 'block';
+    if (errorDiv) {
+      const errorText = document.getElementById('child-qr-error-text');
+      const errorMessage = 'Не удалось получить доступ к камере. Разрешите доступ к камере в настройках браузера.';
+      if (errorText) {
+        errorText.textContent = errorMessage;
+      } else {
+        errorDiv.textContent = errorMessage;
+      }
+      errorDiv.style.display = 'block';
+    }
   }
 }
 
